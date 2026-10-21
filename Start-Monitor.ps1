@@ -2,27 +2,36 @@
 param(
     [ValidateSet('LIVE','DEMO')][string]$Mode='LIVE',
     [string]$ConfigPath='',
-    [ValidateRange(10,86400)][int]$IntervalSeconds=60,
+    [ValidateRange(1,86400)][int]$IntervalSeconds=5,
     [switch]$SendEmail,
     [switch]$Once,
     [switch]$OpenDashboard,
     [ValidateRange(0,1000000)][int]$MaxCycles=0
 )
 $ErrorActionPreference='Stop'
+$intervalOverride=$PSBoundParameters.ContainsKey('IntervalSeconds')
+. "$PSScriptRoot/Common.ps1"
 if (!$ConfigPath) {
     $ConfigPath=Join-Path $PSScriptRoot 'config.local.json'
     if (!(Test-Path -LiteralPath $ConfigPath)) { Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'config.example.json') -Destination $ConfigPath }
 }
 if (!(Test-Path -LiteralPath $ConfigPath)) { throw 'Configuration not found. Copy config.example.json to config.local.json and follow docs/LIVE_SETUP.md.' }
 $configFullPath=(Resolve-Path -LiteralPath $ConfigPath).Path
+$config=Read-MonitorConfig $configFullPath
+if (!$intervalOverride) { $IntervalSeconds=[int]$config.PollIntervalSeconds }
 $engine=Join-Path $PSHOME 'powershell.exe'
 if (!(Test-Path -LiteralPath $engine)) { $engine=(Get-Command powershell.exe -ErrorAction Stop).Source }
-$mainArguments=@('-NoProfile','-ExecutionPolicy','Bypass','-File',(Join-Path $PSScriptRoot 'main.ps1'),'-Mode',$Mode,'-ConfigPath',$configFullPath)
-if ($SendEmail) { $mainArguments+='-SendEmail' }
+$baseArguments=@('-NoProfile','-ExecutionPolicy','Bypass','-File',(Join-Path $PSScriptRoot 'main.ps1'),'-Mode',$Mode,'-ConfigPath',$configFullPath)
+if ($SendEmail) { $baseArguments+='-SendEmail' }
 Write-Host "Monitoring $Mode. Cycle interval: approximately $IntervalSeconds seconds. Stop with Ctrl+C."
 if ($SendEmail) { Write-Host 'Email delivery is enabled for all pending alerts in this mode.' }
 $cycleCount=0; $opened=$false
 do {
+    if (!$intervalOverride) {
+        $config=Read-MonitorConfig $configFullPath
+        $IntervalSeconds=[int]$config.PollIntervalSeconds
+    }
+    $mainArguments=$baseArguments+@('-IntervalSeconds',[string]$IntervalSeconds)
     $timer=[Diagnostics.Stopwatch]::StartNew()
     Write-Host "[$([DateTime]::Now.ToString('yyyy-MM-dd HH:mm:ss'))] Starting cycle."
     # Run each cycle in a separate process so main.ps1 failures do not stop the loop.

@@ -51,8 +51,12 @@ function Export-MonitorReports {
     $accountTable = ConvertTo-ReportTable $accounts @('Account','IncidentCount')
     $failures = @($State.Events | Where-Object EventId -eq 4625).Count
     $generated = [DateTime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss UTC')
-    $healthSection=''; $lastRun=''
+    $healthSection=''; $lastRun=''; $refreshSeconds=1; $staleSeconds=180
     if ($null -ne $Status) {
+        if ($Status.PSObject.Properties['DashboardRefreshSeconds']) { $refreshSeconds=[int]$Status.DashboardRefreshSeconds }
+        $refreshSeconds=[Math]::Max(1,[Math]::Min(60,$refreshSeconds))
+        if ($Status.PSObject.Properties['PollIntervalSeconds']) { $staleSeconds=[Math]::Max(20,3*[int]$Status.PollIntervalSeconds) }
+        $cadence=if ($Status.PSObject.Properties['PollIntervalSeconds']) { "Logs checked every $($Status.PollIntervalSeconds) seconds. " } else { '' }
         $lastRun=[Net.WebUtility]::HtmlEncode([string]$Status.LastAttemptUtc)
         $labels=@{OK='Monitoring is running';DEGRADED='Monitoring needs attention';ERROR='Event logs are unavailable';DEMO='Synthetic demonstration data'}
         $healthLabel=[Net.WebUtility]::HtmlEncode([string]$labels[$Status.Health])
@@ -61,14 +65,14 @@ function Export-MonitorReports {
         $sourceTable=ConvertTo-ReportTable $sourceRows @('LogName','Status','ReadEvents','LastSuccessUtc','Information')
         $mailInfo=[Net.WebUtility]::HtmlEncode([string]$Status.SmtpMessage)
         $pendingText=[Net.WebUtility]::HtmlEncode([string]$Status.PendingNotifications)
-        $healthSection="<section class='$healthCss'><h2 id='health-label'>$healthLabel</h2><p id='freshness' data-last-run='$lastRun'>Last cycle UTC: $lastRun. Refreshes automatically every 5 seconds.</p>$sourceTable<p><strong>Notifications:</strong> $mailInfo Pending: $pendingText.</p></section>"
+        $healthSection="<section class='$healthCss'><h2 id='health-label'>$healthLabel</h2><p id='freshness' data-last-run='$lastRun'>Last cycle UTC: $lastRun. $cadence Dashboard refreshes every $refreshSeconds seconds.</p>$sourceTable<p><strong>Notifications:</strong> $mailInfo Pending: $pendingText.</p></section>"
     }
     $recentRows=@($State.Events | Sort-Object TimeCreated -Descending | Select-Object -First 50 | ForEach-Object {
         [pscustomobject]@{TimeUtc=$_.TimeCreated;LogName=$_.LogName;EventId=$_.EventId;RecordId=$_.RecordId;Account=$_.Account;IpAddress=$_.IpAddress}
     })
     $recentTable=ConvertTo-ReportTable $recentRows @('TimeUtc','LogName','EventId','RecordId','Account','IpAddress')
     $html = @"
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="5">
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="$refreshSeconds">
 <title>Windows Security Monitoring System</title>
 <style>
 :root{font-family:Segoe UI,Arial,sans-serif;color:#17293a;background:#eef3f8}body{margin:0}header{background:#102b46;color:white;padding:38px max(24px,5vw)}header p{color:#c5d5e5}h1{font-size:30px;max-width:850px;margin:14px 0}h2{font-size:20px}main{padding:28px max(24px,5vw)}.tag{letter-spacing:2px;font-size:12px;color:#80e0c6}.cards,.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.card,section{background:white;border:1px solid #d4dfe9;border-radius:12px;padding:22px;margin-bottom:24px}.number{font-size:38px;font-weight:650;margin-top:8px}.muted{color:#597086}section .table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;background:#edf3f8;color:#3b5268}td,th{padding:12px;border-bottom:1px solid #e1e8ef;overflow-wrap:anywhere}tr.high td:first-child{border-left:4px solid #d23b48}tr.high{background:#fff5f5}.grid{grid-template-columns:1fr 1fr}footer{font-size:13px;color:#597086;margin:10px 0 30px}@media(max-width:760px){.cards,.grid{grid-template-columns:1fr}h1{font-size:24px}}@media print{header{background:white;color:black}.card,section{break-inside:avoid}}
@@ -83,7 +87,7 @@ function Export-MonitorReports {
 <section><h2>Latest 50 events</h2>$recentTable</section>
 <footer>Mode: $Mode. History includes saved runs. IP and account alerts are independent. DEMO uses synthetic data only.</footer></main>
 <script>
-(function(){var node=document.getElementById('freshness');if(!node)return;var last=Date.parse(node.dataset.lastRun);if(!Number.isFinite(last))return;if(Date.now()-last>180000){node.textContent='NO UPDATE FOR OVER 3 MINUTES. Check the monitoring process or Task Scheduler.';node.className='stale';document.getElementById('health-label').textContent='Monitor data is out of date';}})();
+(function(){var node=document.getElementById('freshness');if(!node)return;var last=Date.parse(node.dataset.lastRun);if(!Number.isFinite(last))return;if(Date.now()-last>$($staleSeconds*1000)){node.textContent='NO RECENT UPDATE. Check the monitoring process or Task Scheduler.';node.className='stale';document.getElementById('health-label').textContent='Monitor data is out of date';}})();
 </script></body></html>
 "@
     Write-TextAtomic (Join-Path $reportDir 'dashboard.html') $html

@@ -10,7 +10,7 @@ Explain: the system reads Windows logs, detects repeated failed logons, exports 
 
 ## 1:00-2:00: architecture
 
-Show main.ps1 and the modules: XML -> normalized events -> detector -> persistent JSON -> reports and log -> notifications. State is saved before SMTP. DEMO and LIVE use separate directories. The console loop or Task Scheduler runs cycles every minute.
+Show main.ps1 and the modules: XML -> normalized events -> detector -> persistent JSON -> reports and log -> notifications. State is saved before SMTP. DEMO and LIVE use separate directories. The console loop polls every five seconds by default; the optional scheduled task runs once per minute.
 
 ## 2:00-3:15: event ingestion
 

@@ -57,6 +57,22 @@ if ($Stage -ge 2) {
         try { Get-WindowsLogs | Out-Null } catch { $caught=$_.Exception.Message -like '*permissions*' }
         Assert-True $caught
     }
+    Test '2: UTC query boundaries reach Get-WinEvent as local times' {
+        $script:expectedQueryStart=([datetime]'2026-01-15T10:00:00Z').ToUniversalTime()
+        $script:expectedQueryEnd=$script:expectedQueryStart.AddMinutes(10)
+        $script:queryCount=0
+        function Get-WinEvent {
+            [CmdletBinding()]param($ListLog,$FilterHashtable)
+            if ($ListLog) { return [pscustomobject]@{IsEnabled=$true} }
+            Assert-True ($FilterHashtable.StartTime.Kind -eq [DateTimeKind]::Local)
+            Assert-True ($FilterHashtable.EndTime.Kind -eq [DateTimeKind]::Local)
+            Assert-True ($FilterHashtable.StartTime.ToUniversalTime() -eq $script:expectedQueryStart)
+            Assert-True ($FilterHashtable.EndTime.ToUniversalTime() -eq $script:expectedQueryEnd)
+            $script:queryCount++
+        }
+        [void](Get-WindowsLogs -StartTime $script:expectedQueryStart -EndTime $script:expectedQueryEnd)
+        Assert-True ($script:queryCount -eq 3)
+    }
     Test '2: accessible log without matching events (mock)' {
         function Get-WinEvent {
             [CmdletBinding()]param($ListLog,$FilterHashtable)

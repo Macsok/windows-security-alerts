@@ -35,6 +35,12 @@ function Read-MonitorConfig {
     if ($config.Threshold -lt 2 -or $config.Threshold -gt 100000 -or $config.Threshold -ne [int]$config.Threshold -or $config.WindowSeconds -lt 1 -or $config.WindowSeconds -gt 86400 -or $config.WindowSeconds -ne [int]$config.WindowSeconds) { throw 'Invalid threshold or time window.' }
     if ($config.OverlapSeconds -lt $config.WindowSeconds -or $config.InitialLookbackMinutes*60 -lt $config.WindowSeconds) { throw 'The initial lookback and overlap must each cover at least one detection window.' }
     if (!$config.OutputRoot) { throw 'OutputRoot is missing from the configuration.' }
+    foreach ($setting in @('PollIntervalSeconds','DashboardRefreshSeconds')) {
+        $default=if ($setting -eq 'PollIntervalSeconds') {5} else {1}
+        $maximum=if ($setting -eq 'PollIntervalSeconds') {86400} else {60}
+        if (!$config.PSObject.Properties[$setting]) { $config | Add-Member -NotePropertyName $setting -NotePropertyValue $default }
+        if ($config.$setting -lt 1 -or $config.$setting -gt $maximum -or $config.$setting -ne [int]$config.$setting) { throw "Invalid $setting." }
+    }
     $base=Split-Path $full
     if (![IO.Path]::IsPathRooted($config.OutputRoot)) { $config.OutputRoot=Join-Path $base $config.OutputRoot }
     foreach ($setting in @('LibraryDirectory','CredentialPath')) {

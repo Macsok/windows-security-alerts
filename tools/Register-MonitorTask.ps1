@@ -10,7 +10,7 @@ if (!$PSCmdlet.ShouldProcess('OSO-Live', 'Create a task that runs every minute, 
 if (!([Security.Principal.WindowsPrincipal]$identity).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Run Start-Live.ps1 -InstallTask as administrator.' }
 if (!$TaskCredential) { $TaskCredential=Get-Credential -UserName $identity.Name -Message 'WINDOWS account password for Task Scheduler (not your Gmail password or PIN). The account needs access to Security and Gmail credentials.' }
 if (!$TaskCredential -or $TaskCredential.UserName -ne $identity.Name) { throw 'Use the Windows account used to configure Gmail.' }
-$arguments='-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}" -Mode LIVE -ConfigPath "{1}"' -f (Join-Path $repo 'main.ps1'),$configFullPath
+$arguments='-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}" -Mode LIVE -ConfigPath "{1}" -IntervalSeconds 60' -f (Join-Path $repo 'main.ps1'),$configFullPath
 if ($SendEmail) { $arguments+=' -SendEmail' }
 $action=New-ScheduledTaskAction -Execute (Join-Path $PSHOME 'powershell.exe') -Argument $arguments -WorkingDirectory $repo
 $trigger=New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 1)

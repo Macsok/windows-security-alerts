@@ -3,6 +3,8 @@
   "WindowSeconds": 120,
   "InitialLookbackMinutes": 10,
   "OverlapSeconds": 180,
+  "PollIntervalSeconds": 5,
+  "DashboardRefreshSeconds": 1,
   "OutputRoot": "runtime",
   "Smtp": {
     "Host": "",

@@ -41,7 +41,11 @@ function Get-WindowsLogs {
     [CmdletBinding()]
     param([datetime]$StartTime = (Get-Date).AddMinutes(-10), [datetime]$EndTime = (Get-Date),
         [ValidateSet('Security','System')][string[]]$LogName = @('Security','System'))
-    if ($StartTime -gt $EndTime) { throw 'The start time is later than the end time.' }
+    if ($StartTime.ToUniversalTime() -gt $EndTime.ToUniversalTime()) { throw 'The start time is later than the end time.' }
+    # Windows PowerShell 5.1 FilterHashtable queries use local wall-clock times.
+    # Convert UTC cursors before passing them to Get-WinEvent; keep stored times in UTC.
+    $queryStart=if ($StartTime.Kind -eq [DateTimeKind]::Utc) { $StartTime.ToLocalTime() } else { $StartTime }
+    $queryEnd=if ($EndTime.Kind -eq [DateTimeKind]::Utc) { $EndTime.ToLocalTime() } else { $EndTime }
     # FilterHashtable alone may return NoMatchingEventsFound even when access is denied.
     # Check access to each required event log before querying it.
     foreach ($name in $LogName) {
@@ -53,9 +57,9 @@ function Get-WindowsLogs {
         }
     }
     $queries = @(
-        @{ LogName='Security'; Id=@(4625,4624,4740,1102); ProviderName='Microsoft-Windows-Security-Auditing'; StartTime=$StartTime; EndTime=$EndTime },
-        @{ LogName='System'; Id=104; ProviderName='Microsoft-Windows-Eventlog'; StartTime=$StartTime; EndTime=$EndTime },
-        @{ LogName='System'; Id=7045; ProviderName='Service Control Manager'; StartTime=$StartTime; EndTime=$EndTime }
+        @{ LogName='Security'; Id=@(4625,4624,4740,1102); ProviderName='Microsoft-Windows-Security-Auditing'; StartTime=$queryStart; EndTime=$queryEnd },
+        @{ LogName='System'; Id=104; ProviderName='Microsoft-Windows-Eventlog'; StartTime=$queryStart; EndTime=$queryEnd },
+        @{ LogName='System'; Id=7045; ProviderName='Service Control Manager'; StartTime=$queryStart; EndTime=$queryEnd }
     )
     foreach ($query in $queries) {
         if ($LogName -notcontains $query.LogName) { continue }

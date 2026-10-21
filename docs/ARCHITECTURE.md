@@ -16,7 +16,7 @@ main.ps1 -> Monitor.ps1 -> Get-Logs.ps1 (LIVE) / New-DemoEvents.ps1 (DEMO)
 
 Each mode has separate output and an exclusive file lock. Save events and alerts before reports and SMTP. `SourceState` stores `LastScanUtc` and `RetryFromUtc` independently for Security and System. A failed channel retains its cursor while the healthy channel continues. State without these cursor fields is upgraded on use. Corrupt JSON causes an error, never an automatic reset.
 
-The dashboard is static HTML with five-second refresh and a three-minute stale-data warning. Report generation time is distinct from the last actual monitoring cycle. Exit codes: 0 success, 2 degraded/source or SMTP error, 1 fatal processing failure. A successful synthetic run retains health `DEMO`.
+The dashboard is static HTML with a configurable refresh (one second by default). Console monitoring polls every five seconds by default; it reloads the configured interval between cycles unless overridden on the command line. Each child cycle receives the effective interval so the report shows the correct cadence. A stale-data warning appears after three intervals, with a minimum of 20 seconds. The once-per-minute scheduled task explicitly reports a 60-second interval. Report generation time is distinct from the last actual monitoring cycle. Exit codes: 0 success, 2 degraded/source or SMTP error, 1 fatal processing failure. A successful synthetic run retains health `DEMO`.
 
 ## Data contracts
 

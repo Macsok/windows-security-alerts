@@ -1,6 +1,8 @@
 ﻿[CmdletBinding()]
-param([string]$ConfigPath='', [switch]$SendEmail, [switch]$SetupMail, [switch]$InstallTask)
+param([string]$ConfigPath='', [switch]$SendEmail, [switch]$SetupMail, [switch]$InstallTask,
+    [ValidateRange(1,86400)][int]$IntervalSeconds=5)
 $ErrorActionPreference='Stop'
+$intervalOverride=$PSBoundParameters.ContainsKey('IntervalSeconds')
 if (!$ConfigPath) { $ConfigPath=Join-Path $PSScriptRoot 'config.local.json' }
 $ConfigPath=[IO.Path]::GetFullPath($ConfigPath)
 $identity=[Security.Principal.WindowsIdentity]::GetCurrent()
@@ -8,6 +10,7 @@ $administrator=([Security.Principal.WindowsPrincipal]$identity).IsInRole([Securi
 if (!$administrator) {
     $arguments='-NoProfile -ExecutionPolicy Bypass -File "{0}" -ConfigPath "{1}"' -f $PSCommandPath,$ConfigPath
     if ($SendEmail) { $arguments+=' -SendEmail' }; if ($SetupMail) { $arguments+=' -SetupMail' }; if ($InstallTask) { $arguments+=' -InstallTask' }
+    if ($intervalOverride) { $arguments+=" -IntervalSeconds $IntervalSeconds" }
     Write-Host 'Windows will request administrator access to read the Security event log.'
     # This interactive console displays setup prompts and lets the user stop monitoring.
     $child=Start-Process -FilePath (Join-Path $PSHOME 'powershell.exe') -ArgumentList $arguments -Verb RunAs -WindowStyle Normal -WorkingDirectory $PSScriptRoot -PassThru
@@ -26,7 +29,9 @@ try {
         & "$PSScriptRoot/tools/Register-MonitorTask.ps1" -ConfigPath $ConfigPath -SendEmail:$SendEmail
         return
     }
-    & "$PSScriptRoot/Start-Monitor.ps1" -Mode LIVE -ConfigPath $ConfigPath -SendEmail:$SendEmail -OpenDashboard
+    $loopOptions=@{Mode='LIVE';ConfigPath=$ConfigPath;SendEmail=$SendEmail;OpenDashboard=$true}
+    if ($intervalOverride) { $loopOptions.IntervalSeconds=$IntervalSeconds }
+    & "$PSScriptRoot/Start-Monitor.ps1" @loopOptions
 } catch {
     Write-Host "Unable to start LIVE: $($_.Exception.Message)" -ForegroundColor Red
     [void](Read-Host 'Press Enter to close this window')

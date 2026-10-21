@@ -8,7 +8,15 @@
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Start-Live.ps1
 ```
 
-The loop runs approximately every 60 seconds and the dashboard refreshes every 5 seconds. Stop with Ctrl+C. Closing the console or logging out stops this loop; use Task Scheduler for background operation.
+The console loop reads logs approximately every **5 seconds** and the dashboard refreshes every **1 second**. A slow query or SMTP operation can extend a cycle. Stop with Ctrl+C. Closing the console or logging out stops this loop; Task Scheduler remains a separate once-per-minute mode.
+
+Change `PollIntervalSeconds` and `DashboardRefreshSeconds` in the local configuration to adjust the timings. The loop reloads configuration between cycles. An explicit command-line interval takes precedence:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Start-Live.ps1 -SendEmail -IntervalSeconds 5
+```
+
+After upgrading a previously running 60-second loop, restart that loop once to load the new code. Changing the display refresh does not change the detection rule of five failures within 120 seconds. The dashboard shows the configured log interval and actual last-cycle timestamp; it warns after three missed intervals, with a minimum of 20 seconds.
 
 Enable Google two-step verification and create an [app password](https://myaccount.google.com/apppasswords), then run:
 
@@ -106,7 +114,7 @@ For manual Task Scheduler setup: run whether logged on or not; choose a daily tr
 
 ```text
 Program: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
-Arguments: -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "C:\Projects\OSO\main.ps1" -Mode LIVE -ConfigPath "C:\Projects\OSO\config.local.json" -SendEmail
+Arguments: -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "C:\Projects\OSO\main.ps1" -Mode LIVE -ConfigPath "C:\Projects\OSO\config.local.json" -SendEmail -IntervalSeconds 60
 Start in: C:\Projects\OSO
 ```
 

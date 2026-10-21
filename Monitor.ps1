@@ -6,8 +6,10 @@
 
 function Invoke-MonitorCycle {
     [CmdletBinding()]
-    param([ValidateSet('LIVE','DEMO')][string]$Mode='LIVE', [Parameter(Mandatory)][string]$ConfigPath, [switch]$SendEmail)
+    param([ValidateSet('LIVE','DEMO')][string]$Mode='LIVE', [Parameter(Mandatory)][string]$ConfigPath, [switch]$SendEmail,
+        [ValidateRange(0,86400)][int]$IntervalSeconds=0)
     $config=Read-MonitorConfig $ConfigPath
+    if ($IntervalSeconds -gt 0) { $config.PollIntervalSeconds=$IntervalSeconds }
     $root=Join-Path ([IO.Path]::GetFullPath($config.OutputRoot)) $Mode.ToLowerInvariant()
     [void][IO.Directory]::CreateDirectory($root)
     $lock=$null
@@ -28,6 +30,8 @@ function Invoke-MonitorCycle {
         $mailMode=if ($SendEmail) {'Send'} else {'Test'}
         $smtpMessage=if ($SendEmail) {'Waiting to send notifications'} else {'TEST: saving .eml files; email delivery is disabled.'}
         $status=[pscustomobject]@{Mode=$Mode;Health=$health;LastAttemptUtc=$end.ToString('o');Sources=$sources;NotificationMode=$mailMode;SmtpMessage=$smtpMessage;PendingNotifications=0}
+        $status | Add-Member -NotePropertyName PollIntervalSeconds -NotePropertyValue ([int]$config.PollIntervalSeconds)
+        $status | Add-Member -NotePropertyName DashboardRefreshSeconds -NotePropertyValue ([int]$config.DashboardRefreshSeconds)
         # Write reports and the alert log before contacting SMTP.
         $reports=Export-MonitorReports -State $state -Root $root -Mode $Mode -Status $status
         $canNotify=$true

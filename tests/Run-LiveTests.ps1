@@ -113,13 +113,16 @@ Test 'LIVE: two actual loop cycles using synthetic DEMO data without SMTP' {
     $previousPreference=$ErrorActionPreference
     try {
         $ErrorActionPreference='Continue'
-        $output=(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$repo/Start-Monitor.ps1" -Mode DEMO -ConfigPath $cfg -IntervalSeconds 10 -MaxCycles 2 2>&1 | Out-String)
+        $output=(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$repo/Start-Monitor.ps1" -Mode DEMO -ConfigPath $cfg -MaxCycles 2 2>&1 | Out-String)
         $code=$LASTEXITCODE
     } finally {$ErrorActionPreference=$previousPreference}
     Assert ($code -eq 0) $output
+    Assert ($output.Contains('Cycle interval: approximately 5 seconds'))
     Assert (([regex]::Matches($output,'Starting cycle')).Count -eq 2)
     $state=Read-MonitorState (Join-Path (Read-MonitorConfig $cfg).OutputRoot 'demo/state.json')
     Assert ($state.Events.Count -eq 17 -and $state.Deliveries.Count -eq 2)
+    $html=Get-Content (Join-Path (Read-MonitorConfig $cfg).OutputRoot 'demo/reports/dashboard.html') -Raw -Encoding UTF8
+    Assert ($html.Contains('http-equiv="refresh" content="1"') -and $html.Contains('Logs checked every 5 seconds'))
 }
 Write-Host "LIVE: $script:passed PASS, $script:failed FAIL. Artifacts: $testRoot"
 if ($script:failed -gt 0) {exit 1}

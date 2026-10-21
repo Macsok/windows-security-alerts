@@ -6,7 +6,7 @@
   "OutputRoot": "runtime",
   "Discord": {
     "Enabled": true,
-    "WebhookUrl": "ADD your webhook link", 
+    "WebhookUrl": "", 
     "ThumbnailUrl": "https://tse2.mm.bing.net/th/id/OIP.ipsXQjIWt6c_szUJ6HSKggHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3"
   },
   "Smtp": {

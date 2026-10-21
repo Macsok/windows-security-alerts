@@ -1,4 +1,18 @@
-﻿[CmdletBinding(SupportsShouldProcess=$true)]
+﻿<#
+.SYNOPSIS
+Registers a once-per-minute task for the current Windows account.
+.DESCRIPTION
+Registers a once-per-minute task for the current Windows account.
+.PARAMETER ConfigPath
+Path to local JSON configuration; defaults to config.local.json.
+.PARAMETER SendEmail
+Enables real SMTP delivery of all pending alerts; omitted means local previews.
+.PARAMETER TaskCredential
+Windows credentials for the same account used to configure SMTP.
+.EXAMPLE
+.\tools\Register-MonitorTask.ps1 -ConfigPath .\config.local.json -WhatIf
+#>
+[CmdletBinding(SupportsShouldProcess=$true)]
 param([string]$ConfigPath='', [switch]$SendEmail, [Management.Automation.PSCredential]$TaskCredential)
 $repo=Split-Path $PSScriptRoot
 . "$repo/Common.ps1"

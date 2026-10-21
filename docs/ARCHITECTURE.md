@@ -1,6 +1,6 @@
 # Architecture and detection algorithm
 
-The starting folder contained no previous source code or concept PDF. No PSWriteHTML, TheDashboard, or PSDsHook implementation was available to reuse. Requirements come from the supplied six-stage brief. The application uses PowerShell and .NET without a database, web server, Python, or dashboard module. MailKit is needed only for real SMTP.
+The starting folder contained no previous source code or concept PDF. The group member's report.ps1 was supplied later and is now adapted in report.ps1 (PSWriteHTML) and Send-Discord.ps1 (PSDsHook embeds). The monitor itself uses PowerShell and .NET without a database or web server. MailKit is needed only for real SMTP; PSWriteHTML is needed only for the optional team report.
 
 ## Module flow
 
@@ -13,6 +13,8 @@ main.ps1 -> Monitor.ps1 -> Get-Logs.ps1 (LIVE) / New-DemoEvents.ps1 (DEMO)
 ```
 
 `Common.ps1` supplies UTC conversion, hashes, atomic writes, config, diagnostics, and label migration. Dot-source modules to call their functions; loading a module alone does not read logs or send messages. `Start-Live.ps1` handles interactive elevation/setup, `Start-Monitor.ps1` starts successive processes, and `Register-MonitorTask.ps1` configures operation after logout.
+
+`report.ps1` reads the selected mode's saved state and generates `reports/team-report.html` plus `reports/stats.json` on request. It retains the supplied categories, Group-Object counts, New-HTML sections/cards/charts/table and JSON statistics. It replaces hardcoded Desktop paths with the configured output folder and Message parsing with normalized XML fields. The original localhost email block is replaced by the existing MailKit notification module. No webhook or personal email address from the supplied snippet is stored in source. Account-management events 4720, 4722, 4724 and 4732 are collected for reporting; individual failed logons are warning events, not automatically incidents. Discord loads only when explicitly configured in LIVE; DEMO does not send webhooks.
 
 Each mode has separate output and an exclusive file lock. Save events and alerts before reports and SMTP. `SourceState` stores `LastScanUtc` and `RetryFromUtc` independently for Security and System. A failed channel retains its cursor while the healthy channel continues. State without these cursor fields is upgraded on use. Corrupt JSON causes an error, never an automatic reset.
 

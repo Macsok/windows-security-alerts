@@ -1,4 +1,14 @@
-﻿[CmdletBinding()]
+﻿<#
+.SYNOPSIS
+Creates a ZIP containing only the reviewed source package files.
+.DESCRIPTION
+Creates a ZIP containing only the reviewed source package files.
+.PARAMETER OutputPath
+Destination ZIP archive; an existing archive is not overwritten.
+.EXAMPLE
+.\tools\Export-SharePackage.ps1 -OutputPath .\dist\source.zip
+#>
+[CmdletBinding()]
 param([string]$OutputPath='')
 $ErrorActionPreference='Stop'
 $repo=Split-Path $PSScriptRoot

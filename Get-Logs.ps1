@@ -1,6 +1,25 @@
-﻿. "$PSScriptRoot/Common.ps1"
+﻿<#
+.SYNOPSIS
+Loads functions for reading and normalizing Windows event logs.
+.DESCRIPTION
+Loads functions for reading and normalizing Windows event logs.
+.EXAMPLE
+. .\Get-Logs.ps1; Get-WindowsLogs -LogName Security
+#>
+. "$PSScriptRoot/Common.ps1"
 
 function ConvertFrom-WindowsEventXml {
+    <#
+    .SYNOPSIS
+    Normalizes Windows event XML into the shared monitoring event format.
+    .DESCRIPTION
+    Normalizes Windows event XML into the shared monitoring event format.
+    .PARAMETER Xml
+    Windows event XML returned by EventRecord.ToXml().
+    .EXAMPLE
+    ConvertFrom-WindowsEventXml -Xml $event.ToXml()
+    #>
+
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$Xml)
     [xml]$doc = $Xml
@@ -38,6 +57,22 @@ function ConvertFrom-WindowsEventXml {
 }
 
 function Get-WindowsLogs {
+    <#
+    .SYNOPSIS
+    Reads selected Security and System events for a time range.
+    .DESCRIPTION
+    Reads selected Security and System events for a time range.
+    Requires Windows and read access to the selected logs. Uses XML fields and local query boundaries; results use UTC.
+    .PARAMETER StartTime
+    Beginning of the requested event time range.
+    .PARAMETER EndTime
+    End of the requested event time range.
+    .PARAMETER LogName
+    Windows event log channels to read: Security or System.
+    .EXAMPLE
+    Get-WindowsLogs -StartTime (Get-Date).AddMinutes(-5) -LogName Security
+    #>
+
     [CmdletBinding()]
     param([datetime]$StartTime = (Get-Date).AddMinutes(-10), [datetime]$EndTime = (Get-Date),
         [ValidateSet('Security','System')][string[]]$LogName = @('Security','System'))
@@ -57,7 +92,7 @@ function Get-WindowsLogs {
         }
     }
     $queries = @(
-        @{ LogName='Security'; Id=@(4625,4624,4740,1102); ProviderName='Microsoft-Windows-Security-Auditing'; StartTime=$queryStart; EndTime=$queryEnd },
+        @{ LogName='Security'; Id=@(4625,4624,4740,1102,4720,4722,4724,4732); ProviderName='Microsoft-Windows-Security-Auditing'; StartTime=$queryStart; EndTime=$queryEnd },
         @{ LogName='System'; Id=104; ProviderName='Microsoft-Windows-Eventlog'; StartTime=$queryStart; EndTime=$queryEnd },
         @{ LogName='System'; Id=7045; ProviderName='Service Control Manager'; StartTime=$queryStart; EndTime=$queryEnd }
     )
@@ -77,6 +112,21 @@ function Get-WindowsLogs {
 }
 
 function Get-LiveLogBatch {
+    <#
+    .SYNOPSIS
+    Reads each Windows log with its own cursor and recovers missed intervals.
+    .DESCRIPTION
+    Reads each Windows log with its own cursor and recovers missed intervals.
+    .PARAMETER State
+    Monitoring state containing saved events, alerts and delivery receipts.
+    .PARAMETER Config
+    Validated monitoring configuration.
+    .PARAMETER EndTime
+    End of the requested event time range.
+    .EXAMPLE
+    Get-LiveLogBatch -State $state -Config $config
+    #>
+
     param($State, $Config, [datetime]$EndTime=[DateTime]::UtcNow)
     if (!$State.PSObject.Properties['SourceState']) { $State | Add-Member -NotePropertyName SourceState -NotePropertyValue ([pscustomobject]@{}) }
     $events=@(); $sources=@()

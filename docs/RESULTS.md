@@ -1,5 +1,16 @@
 # Validation results and acceptance status
 
+## Simplification and group report (branch simplify-project)
+
+- Shortened README to direct installation, DEMO, LIVE, Gmail and test commands; simplified the default dashboard to basic tables.
+- Adapted the supplied group report into report.ps1: event categories, grouping, PSWriteHTML cards/charts/table, and JSON statistics. Added collection of its account-management event IDs.
+- Added comment-based help to production functions and entry/tool scripts; checked actual Get-Help synopsis and parameter output.
+- Repaired IntervalSeconds forwarding and made Discord optional at load time. DEMO never sends Discord webhooks.
+- Local Windows PowerShell 5.1 suites: **31 core + 9 LIVE/mock + 7 English/share + 5 reporting/help = 52 PASS, 0 FAIL**.
+- Generated the real PSWriteHTML 1.41.0 report from synthetic events: 17 events, 15 warning events, valid HTML and JSON, encoded account text. Both function and command-line generation passed; monitor state was unchanged.
+- Built a real DiscordEmbed using PSDsHook 1.0.0 without sending it. The 48-file source share allowlist passed the private-data check.
+- No real failed logons, SMTP messages or webhooks were generated for these changes. Real log access, inbox delivery and operation on another computer were not revalidated. Historical checks below describe earlier versions.
+
 ## English update: 21 October 2026
 
 All application-owned prompts, reports, CSV headers, email messages, diagnostics, test names, comments, and documentation were converted to English. Legacy labels remain only as migration inputs and identity compatibility data. Raw event/account values are preserved. New tests verify stable alert IDs, unchanged receipts, restart and late-event deduplication, English reports, offline refresh, and share-file exclusions.

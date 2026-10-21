@@ -1,6 +1,35 @@
-﻿. "$PSScriptRoot/Get-Logs.ps1"
+﻿<#
+.SYNOPSIS
+Loads synthetic event generators; creates no real failed logons.
+.DESCRIPTION
+Loads synthetic event generators; creates no real failed logons.
+.EXAMPLE
+. .\New-DemoEvents.ps1; Get-DemoEvents
+#>
+. "$PSScriptRoot/Get-Logs.ps1"
 
 function New-SyntheticEvent {
+    <#
+    .SYNOPSIS
+    Creates one synthetic Windows event without attempting a real logon.
+    .DESCRIPTION
+    Creates one synthetic Windows event without attempting a real logon.
+    .PARAMETER RecordId
+    Synthetic event record identifier.
+    .PARAMETER Time
+    Timestamp assigned to the synthetic event.
+    .PARAMETER EventId
+    Windows event identifier assigned to the synthetic event.
+    .PARAMETER Ip
+    Synthetic source IP address, or an empty value.
+    .PARAMETER User
+    Synthetic target user name.
+    .PARAMETER Domain
+    Synthetic target account domain.
+    .EXAMPLE
+    New-SyntheticEvent -RecordId 1 -EventId 4625
+    #>
+
     param([int]$RecordId, [datetime]$Time = ([datetime]'2026-01-15T10:00:00Z'),
         [int]$EventId = 4625, [AllowNull()][string]$Ip = '192.0.2.10',
         [AllowNull()][string]$User = 'student', [string]$Domain = 'LAB')
@@ -18,6 +47,15 @@ function New-SyntheticEvent {
 }
 
 function Get-DemoEvents {
+    <#
+    .SYNOPSIS
+    Returns the fixed 17-event demonstration dataset.
+    .DESCRIPTION
+    Returns the fixed 17-event demonstration dataset.
+    .EXAMPLE
+    Get-DemoEvents
+    #>
+
     $base = [datetime]'2026-01-15T10:00:00Z'
     New-SyntheticEvent -RecordId 1 -Time $base -EventId 4624 -User 'anna'
     1..3 | ForEach-Object { New-SyntheticEvent -RecordId (10+$_) -Time $base.AddSeconds($_*10) -Ip '192.0.2.20' -User 'piotr' }

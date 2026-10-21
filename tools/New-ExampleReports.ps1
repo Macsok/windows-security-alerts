@@ -1,4 +1,12 @@
-﻿# Generate synthetic examples for sharing; no SMTP connections or Windows event log access.
+﻿<#
+.SYNOPSIS
+Generates shareable reports from synthetic demonstration events.
+.DESCRIPTION
+Generates shareable reports from synthetic demonstration events.
+.EXAMPLE
+.\tools\New-ExampleReports.ps1
+#>
+# Generate synthetic examples for sharing; no SMTP connections or Windows event log access.
 $repo=Split-Path $PSScriptRoot
 . "$repo/New-DemoEvents.ps1"
 . "$repo/Detect-Attacks.ps1"

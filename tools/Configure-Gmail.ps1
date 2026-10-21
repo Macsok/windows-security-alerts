@@ -1,4 +1,14 @@
-﻿[CmdletBinding()]
+﻿<#
+.SYNOPSIS
+Configures Gmail app-password credentials on this Windows computer.
+.DESCRIPTION
+Configures Gmail app-password credentials on this Windows computer.
+.PARAMETER ConfigPath
+Path to local JSON configuration; defaults to config.local.json.
+.EXAMPLE
+.\tools\Configure-Gmail.ps1 -ConfigPath .\config.local.json
+#>
+[CmdletBinding()]
 param([string]$ConfigPath='')
 $repo=Split-Path $PSScriptRoot
 . "$repo/Common.ps1"

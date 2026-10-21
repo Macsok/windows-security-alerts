@@ -1,6 +1,25 @@
-﻿. "$PSScriptRoot/Common.ps1"
+﻿<#
+.SYNOPSIS
+Loads CSV, HTML and warning-log export functions.
+.DESCRIPTION
+Loads CSV, HTML and warning-log export functions.
+.EXAMPLE
+. .\Generate-Reports.ps1; Export-MonitorReports -State $state -Root .\runtime\demo
+#>
+. "$PSScriptRoot/Common.ps1"
 
 function ConvertTo-SafeCsvText {
+    <#
+    .SYNOPSIS
+    Escapes spreadsheet formula prefixes in untrusted CSV values.
+    .DESCRIPTION
+    Escapes spreadsheet formula prefixes in untrusted CSV values.
+    .PARAMETER Value
+    Value to serialize or encode.
+    .EXAMPLE
+    ConvertTo-SafeCsvText -Value '=untrusted account'
+    #>
+
     param($Value)
     $text = [string]$Value
     # Protect spreadsheets from formulas in untrusted account names.
@@ -9,6 +28,19 @@ function ConvertTo-SafeCsvText {
 }
 
 function ConvertTo-ReportTable {
+    <#
+    .SYNOPSIS
+    Builds an HTML table with encoded cell values.
+    .DESCRIPTION
+    Builds an HTML table with encoded cell values.
+    .PARAMETER Rows
+    Objects to display as table rows.
+    .PARAMETER Columns
+    Property names in the required column order.
+    .EXAMPLE
+    ConvertTo-ReportTable -Rows @() -Columns @('Account','EventId')
+    #>
+
     param([AllowEmptyCollection()][object[]]$Rows, [string[]]$Columns)
     $html = '<div class="table-wrap"><table><thead><tr>'
     foreach ($column in $Columns) { $html += '<th>' + [Net.WebUtility]::HtmlEncode($column) + '</th>' }
@@ -24,6 +56,23 @@ function ConvertTo-ReportTable {
 }
 
 function Export-MonitorReports {
+    <#
+    .SYNOPSIS
+    Exports incidents, events, dashboard and warning log from saved state.
+    .DESCRIPTION
+    Exports incidents, events, dashboard and warning log from saved state.
+    .PARAMETER State
+    Monitoring state containing saved events, alerts and delivery receipts.
+    .PARAMETER Root
+    Output folder for the selected mode, or source folder for sharing tools.
+    .PARAMETER Mode
+    Selects DEMO or LIVE, or Test previews versus Send delivery for email functions.
+    .PARAMETER Status
+    Current collection, notification and refresh status for the dashboard.
+    .EXAMPLE
+    Export-MonitorReports -State $state -Root .\runtime\demo -Mode DEMO
+    #>
+
     [CmdletBinding()]
     param($State, [Parameter(Mandatory)][string]$Root, [ValidateSet('DEMO','LIVE')][string]$Mode='DEMO', $Status=$null)
     $reportDir = Join-Path $Root 'reports'; [void][IO.Directory]::CreateDirectory($reportDir)
@@ -75,8 +124,13 @@ function Export-MonitorReports {
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="$refreshSeconds">
 <title>Windows Security Monitoring System</title>
 <style>
-:root{font-family:Segoe UI,Arial,sans-serif;color:#17293a;background:#eef3f8}body{margin:0}header{background:#102b46;color:white;padding:38px max(24px,5vw)}header p{color:#c5d5e5}h1{font-size:30px;max-width:850px;margin:14px 0}h2{font-size:20px}main{padding:28px max(24px,5vw)}.tag{letter-spacing:2px;font-size:12px;color:#80e0c6}.cards,.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.card,section{background:white;border:1px solid #d4dfe9;border-radius:12px;padding:22px;margin-bottom:24px}.number{font-size:38px;font-weight:650;margin-top:8px}.muted{color:#597086}section .table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;background:#edf3f8;color:#3b5268}td,th{padding:12px;border-bottom:1px solid #e1e8ef;overflow-wrap:anywhere}tr.high td:first-child{border-left:4px solid #d23b48}tr.high{background:#fff5f5}.grid{grid-template-columns:1fr 1fr}footer{font-size:13px;color:#597086;margin:10px 0 30px}@media(max-width:760px){.cards,.grid{grid-template-columns:1fr}h1{font-size:24px}}@media print{header{background:white;color:black}.card,section{break-inside:avoid}}
-.problem{border-left:6px solid #d23b48}.healthy{border-left:6px solid #147d64}.stale{color:#a01928;font-weight:bold}
+body{font-family:Arial,sans-serif;margin:24px;color:#222;background:white}
+h1{font-size:24px}h2{font-size:18px}section{margin:24px 0}
+.cards{display:flex;gap:32px}.number{font-size:24px;font-weight:bold}
+.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px;border:1px solid #ccc;text-align:left;overflow-wrap:anywhere}
+th{background:#eee}tr.high{background:#fee}.problem,.stale{color:#a00}
+.tag,.muted,footer{color:#555}footer{margin-top:24px}
 </style></head><body><header><span class="tag">OSO / SECURITY MONITOR / $Mode</span>
 <h1>Windows Security Monitoring System</h1><p>Report generated: $generated</p></header>
 <main>$healthSection<div class="cards"><div class="card"><span class="muted">Events analyzed</span><div class="number">$(@($State.Events).Count)</div></div>

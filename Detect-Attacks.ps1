@@ -1,6 +1,29 @@
-﻿. "$PSScriptRoot/Common.ps1"
+﻿<#
+.SYNOPSIS
+Loads sliding-window detection and persistent deduplication functions.
+.DESCRIPTION
+Loads sliding-window detection and persistent deduplication functions.
+.EXAMPLE
+. .\Detect-Attacks.ps1; Find-SuspiciousActivity -Events $events
+#>
+. "$PSScriptRoot/Common.ps1"
 
 function Find-SuspiciousActivity {
+    <#
+    .SYNOPSIS
+    Detects failed-logon episodes by IP or account in sliding windows.
+    .DESCRIPTION
+    Detects failed-logon episodes by IP or account in sliding windows.
+    .PARAMETER Events
+    Normalized Windows events, including synthetic events in DEMO.
+    .PARAMETER Threshold
+    Minimum failed-logon count per IP or account required for an alert.
+    .PARAMETER WindowSeconds
+    Length of the inclusive sliding detection window, in seconds.
+    .EXAMPLE
+    Find-SuspiciousActivity -Events (Get-DemoEvents) -Threshold 5 -WindowSeconds 120
+    #>
+
     [CmdletBinding()]
     param([AllowEmptyCollection()][object[]]$Events = @(), [ValidateRange(2,100000)][int]$Threshold = 5,
         [ValidateRange(1,86400)][int]$WindowSeconds = 120)
@@ -53,6 +76,23 @@ function Find-SuspiciousActivity {
 }
 
 function Update-MonitorDetection {
+    <#
+    .SYNOPSIS
+    Merges events and persists new incidents without duplicating saved alerts.
+    .DESCRIPTION
+    Merges events and persists new incidents without duplicating saved alerts.
+    .PARAMETER State
+    Monitoring state containing saved events, alerts and delivery receipts.
+    .PARAMETER Events
+    Normalized Windows events, including synthetic events in DEMO.
+    .PARAMETER Threshold
+    Minimum failed-logon count per IP or account required for an alert.
+    .PARAMETER WindowSeconds
+    Length of the inclusive sliding detection window, in seconds.
+    .EXAMPLE
+    Update-MonitorDetection -State $state -Events (Get-DemoEvents)
+    #>
+
     param($State, [AllowEmptyCollection()][object[]]$Events = @(), [int]$Threshold = 5, [int]$WindowSeconds = 120)
     Update-AlertLanguage $State
     $knownEvents = @{}; foreach ($event in @($State.Events) + $Events) { $knownEvents[$event.EventKey] = $event }

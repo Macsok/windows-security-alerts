@@ -1,14 +1,39 @@
+﻿<#
+.SYNOPSIS
+Loads the modules and exposes a single monitoring cycle.
+.DESCRIPTION
+Loads the modules and exposes a single monitoring cycle.
+.EXAMPLE
+. .\Monitor.ps1; Invoke-MonitorCycle -Mode DEMO -ConfigPath .\config.local.json
+#>
 Add-Type -AssemblyName System.Net.Http
 . "$PSScriptRoot/Get-Logs.ps1"
 . "$PSScriptRoot/Detect-Attacks.ps1"
 . "$PSScriptRoot/Generate-Reports.ps1"
 . "$PSScriptRoot/Send-Notification.ps1"
 . "$PSScriptRoot/New-DemoEvents.ps1"
-. "$PSScriptRoot/Send-Discord.ps1"
 
 function Invoke-MonitorCycle {
+    <#
+    .SYNOPSIS
+    Runs collection, detection, reports and pending notifications once.
+    .DESCRIPTION
+    Runs collection, detection, reports and pending notifications once.
+    .PARAMETER Mode
+    Selects DEMO or LIVE, or Test previews versus Send delivery for email functions.
+    .PARAMETER ConfigPath
+    Path to local JSON configuration; defaults to config.local.json.
+    .PARAMETER SendEmail
+    Enables real SMTP delivery of all pending alerts; omitted means local previews.
+    .PARAMETER IntervalSeconds
+    Effective polling interval for dashboard status; zero uses configuration.
+    .EXAMPLE
+    Invoke-MonitorCycle -Mode DEMO -ConfigPath .\config.local.json
+    #>
+
     [CmdletBinding()]
-    param([ValidateSet('LIVE','DEMO')][string]$Mode='LIVE', [Parameter(Mandatory)][string]$ConfigPath, [switch]$SendEmail)
+    param([ValidateSet('LIVE','DEMO')][string]$Mode='LIVE', [Parameter(Mandatory)][string]$ConfigPath, [switch]$SendEmail,
+        [ValidateRange(0,86400)][int]$IntervalSeconds=0)
     $config=Read-MonitorConfig $ConfigPath
     $root=Join-Path ([IO.Path]::GetFullPath($config.OutputRoot)) $Mode.ToLowerInvariant()
     [void][IO.Directory]::CreateDirectory($root)
@@ -29,7 +54,7 @@ function Invoke-MonitorCycle {
         Save-JsonAtomic $path $state
 
         # Discord: send every saved alert that has not been delivered to Discord yet.
-        $discordOn = $config.PSObject.Properties['Discord'] -and $config.Discord.PSObject.Properties['Enabled'] -and $config.Discord.Enabled -and $config.Discord.WebhookUrl
+        $discordOn = $Mode -eq 'LIVE' -and $config.PSObject.Properties['Discord'] -and $config.Discord.PSObject.Properties['Enabled'] -and $config.Discord.Enabled -and $config.Discord.WebhookUrl
         if ($discordOn) {
             $sentToDiscord=@{}; foreach ($delivery in $state.Deliveries) { if ($delivery.Mode -eq 'Discord') { $sentToDiscord[$delivery.AlertId]=$true } }
             $discordAlerts=@($state.Alerts | Where-Object { !$sentToDiscord.ContainsKey($_.AlertId) })
@@ -50,6 +75,8 @@ function Invoke-MonitorCycle {
         $mailMode=if ($SendEmail) {'Send'} else {'Test'}
         $smtpMessage=if ($SendEmail) {'Waiting to send notifications'} else {'TEST: saving .eml files; email delivery is disabled.'}
         $status=[pscustomobject]@{Mode=$Mode;Health=$health;LastAttemptUtc=$end.ToString('o');Sources=$sources;NotificationMode=$mailMode;SmtpMessage=$smtpMessage;PendingNotifications=0}
+        $status | Add-Member -NotePropertyName PollIntervalSeconds -NotePropertyValue $(if ($IntervalSeconds) {$IntervalSeconds} else {$config.PollIntervalSeconds})
+        $status | Add-Member -NotePropertyName DashboardRefreshSeconds -NotePropertyValue $config.DashboardRefreshSeconds
         # Write reports and the alert log before contacting SMTP.
         $reports=Export-MonitorReports -State $state -Root $root -Mode $Mode -Status $status
         $canNotify=$true

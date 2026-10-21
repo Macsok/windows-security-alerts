@@ -1,4 +1,12 @@
-﻿[CmdletBinding()]
+﻿<#
+.SYNOPSIS
+Builds MailKit libraries locally using the installed .NET SDK.
+.DESCRIPTION
+Builds MailKit libraries locally using the installed .NET SDK.
+.EXAMPLE
+.\tools\Install-MailKit.ps1
+#>
+[CmdletBinding()]
 param()
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot

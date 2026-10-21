@@ -1,4 +1,16 @@
-﻿[CmdletBinding()]
+﻿<#
+.SYNOPSIS
+Migrates saved report labels to English without resending notifications.
+.DESCRIPTION
+Migrates saved report labels to English without resending notifications.
+.PARAMETER ConfigPath
+Path to local JSON configuration; defaults to config.local.json.
+.PARAMETER Mode
+Selects DEMO or LIVE, or Test previews versus Send delivery for email functions.
+.EXAMPLE
+.\tools\Update-EnglishReports.ps1 -Mode DEMO -ConfigPath .\config.local.json
+#>
+[CmdletBinding()]
 param([Parameter(Mandatory)][string]$ConfigPath, [ValidateSet('DEMO','LIVE')][string[]]$Mode=@('DEMO','LIVE'))
 $repo=Split-Path $PSScriptRoot
 . "$repo/Generate-Reports.ps1"

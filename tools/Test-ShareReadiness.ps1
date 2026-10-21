@@ -1,4 +1,14 @@
-﻿[CmdletBinding()]
+﻿<#
+.SYNOPSIS
+Checks the shareable source files for known private-data patterns.
+.DESCRIPTION
+Checks the shareable source files for known private-data patterns.
+.PARAMETER Root
+Output folder for the selected mode, or source folder for sharing tools.
+.EXAMPLE
+.\tools\Test-ShareReadiness.ps1
+#>
+[CmdletBinding()]
 param([string]$Root='')
 $ErrorActionPreference='Stop'
 if (!$Root) { $Root=Split-Path $PSScriptRoot }

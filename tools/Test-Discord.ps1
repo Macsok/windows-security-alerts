@@ -1,3 +1,13 @@
+﻿<#
+.SYNOPSIS
+Sends one real test message to the locally configured Discord webhook.
+.DESCRIPTION
+Sends one real test message to the locally configured Discord webhook.
+.PARAMETER ConfigPath
+Path to local JSON configuration; defaults to config.local.json.
+.EXAMPLE
+.\tools\Test-Discord.ps1 -ConfigPath .\config.local.json
+#>
 [CmdletBinding()]
 param([string]$ConfigPath = '')
 

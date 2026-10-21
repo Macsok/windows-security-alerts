@@ -249,7 +249,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Start-Live.ps1 -Config
 
 Otherwise the loop reloads PollIntervalSeconds from local configuration between cycles. Restart a loop launched by an older code version once after upgrading. Stop with Ctrl+C; closing the console, logging out, sleep, or shutdown interrupts this mode.
 
-### 9. Set up Discord notifications
+## 9. Set up Discord notifications
 
 Skip this section if you do not want chat alerts. To enable real-time Discord alerts, you need a valid Webhook URL from your Discord server. The monitoring script uses the `PSDsHook` module and automatically loads the required `.NET` HTTP assemblies.
 

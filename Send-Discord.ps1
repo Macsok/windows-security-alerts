@@ -6,7 +6,7 @@ Loads optional PSDsHook notification functions adapted from the group code.
 .EXAMPLE
 . .\Send-Discord.ps1; New-DiscordAlertEmbed -Alerts $state.Alerts
 #>
-#create Discord Embed - LIVE
+# Discord embed and batching logic contributed by Mewa-zip; loaded on demand.
 function New-DiscordAlertEmbed {
     <#
     .SYNOPSIS

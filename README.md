@@ -129,9 +129,27 @@ Use `-Mode LIVE` for real events. Includes the last 24 hours of available histor
 Events 4720, 4722, 4724 and 4732 require the corresponding Windows account-management auditing policies.
 [PSWriteHTML documentation](https://github.com/EvotecIT/PSWriteHTML).
 
-The supplied Discord embed code is adapted in `Send-Discord.ps1`. Discord is optional and off by default.
-To enable it, install `PSDsHook`, set `Discord.Enabled=true` and a **new** `Discord.WebhookUrl`
-in ignored `config.local.json`. Only LIVE sends Discord messages. Never commit a webhook.
+## Discord (Mewa-zip's integration)
+
+In Discord: **Server Settings > Integrations > Webhooks**, create a new webhook and copy its URL.
+Stop the monitor, then run:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Start-Live.ps1 -SetupDiscord
+```
+
+Answer `Y` and paste the **new** webhook. Setup installs PSDsHook automatically if missing,
+saves the webhook in ignored `config.local.json`, then starts LIVE. Add `-SendEmail` for both channels.
+Discord receives all pending LIVE alerts. Configuration and DEMO do not send test messages.
+Local configuration stays in the same folder when switching Git branches; it is not stored in either branch.
+
+To deliberately send one real test message:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test-Discord.ps1
+```
+
+The supplied Discord embed code is preserved in `Send-Discord.ps1`. Never commit a webhook.
 Email uses MailKit instead of the supplied localhost email example.
 
 ## Run after logout (optional, every minute)
@@ -169,6 +187,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-Tests.ps1 -S
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-LiveTests.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-EnglishTests.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-ReportTests.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-DiscordTests.ps1
 Get-Help .\Start-Live.ps1 -Detailed
 . .\Get-Logs.ps1
 Get-Help Get-WindowsLogs -Full

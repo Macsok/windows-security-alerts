@@ -1,5 +1,19 @@
 # Validation results and acceptance status
 
+## Mewa-zip Discord preservation
+
+After fetching origin, all 10 Mewa-zip commits on origin/main were verified as ancestors of
+simplify-project. Restored -SetupDiscord and added its previously missing configuration script,
+automatic PSDsHook installation, and short setup/test instructions. Existing Discord embed,
+batching, retry/delivery receipts, thumbnail configuration and explicit test script remain.
+See [MEWA_CHANGES.md](MEWA_CHANGES.md) for the file-by-file preservation record.
+
+Tests: **31 core + 9 LIVE/mock + 7 English/share + 5 reporting/help + 5 Discord = 57 PASS, 0 FAIL**.
+New Discord checks mock installation, password input, module availability and Windows logs;
+they verify SMTP/custom setting preservation, saved webhook reuse, validation, disabling,
+and report/email-preview generation when Discord is unavailable. No real message was sent.
+Real installation and webhook delivery from the new setup flow were not performed.
+
 ## Simplification and group report (branch simplify-project)
 
 - Shortened README to direct installation, DEMO, LIVE, Gmail and test commands; simplified the default dashboard to basic tables.

@@ -53,7 +53,7 @@ function Invoke-MonitorCycle {
         $new=@(Update-MonitorDetection -State $state -Events $events -Threshold $config.Threshold -WindowSeconds $config.WindowSeconds)
         Save-JsonAtomic $path $state
 
-        # Discord: send every saved alert that has not been delivered to Discord yet.
+        # Mewa-zip's Discord integration: retry saved alerts without delivery receipts.
         $discordOn = $Mode -eq 'LIVE' -and $config.PSObject.Properties['Discord'] -and $config.Discord.PSObject.Properties['Enabled'] -and $config.Discord.Enabled -and $config.Discord.WebhookUrl
         if ($discordOn) {
             $sentToDiscord=@{}; foreach ($delivery in $state.Deliveries) { if ($delivery.Mode -eq 'Discord') { $sentToDiscord[$delivery.AlertId]=$true } }

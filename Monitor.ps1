@@ -50,7 +50,7 @@ function Invoke-MonitorCycle {
             $events=@(Get-DemoEvents); $sources=@([pscustomobject]@{Name='DEMO';Status='SYNTHETIC';ReadEvents=$events.Count;LastSuccessUtc=$end.ToString('o');Error=''})
             $state.LastScanUtc=$end.ToString('o'); $health='DEMO'
         }
-        $new=@(Update-MonitorDetection -State $state -Events $events -Threshold $config.Threshold -WindowSeconds $config.WindowSeconds)
+        $new=@(Update-MonitorDetection -State $state -Events $events -Threshold $config.Threshold -WindowSeconds $config.WindowSeconds -Rules $config.Rules)
         Save-JsonAtomic $path $state
 
         # Discord: retry saved alerts without delivery receipts.

@@ -40,6 +40,10 @@ function ConvertFrom-WindowsEventXml {
     if ($user) {
         if ($domain -and $domain -ne '-') { $account = "$domain\$user" } else { $account = $user }
     }
+    $actor=$fields['SubjectUserName']
+    if (!$actor -or $actor -eq '-') { $actor=$null }
+    elseif ($fields['SubjectDomainName'] -and $fields['SubjectDomainName'] -ne '-') { $actor="$($fields['SubjectDomainName'])\$actor" }
+    $member=$fields['MemberName']; if ($member -eq '-') { $member=$null }
     $ip = $null; $parsed = $null
     if ([Net.IPAddress]::TryParse([string]$fields['IpAddress'], [ref]$parsed)) {
         if ($parsed.IsIPv4MappedToIPv6) { $parsed = $parsed.MapToIPv4() }
@@ -53,6 +57,8 @@ function ConvertFrom-WindowsEventXml {
         EventKey = $key; TimeCreated = $time.ToString('o'); EventId = $id
         RecordId = $record; LogName = $channel; MachineName = $machine; ProviderName = $provider
         UserName = $user; Account = $account; IpAddress = $ip; LogonType = $fields['LogonType']
+        GroupSid = $(if ($id -eq 4732) { $fields['TargetSid'] } else { $null })
+        MemberSid = $fields['MemberSid']; MemberName = $member; ActorAccount = $actor
     }
 }
 

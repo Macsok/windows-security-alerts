@@ -77,6 +77,35 @@ function Write-TextAtomic {
     } finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary } }
 }
 
+function Get-DetectionRules {
+    <#
+    .SYNOPSIS
+    Applies defaults and validates the optional detection rules.
+    .DESCRIPTION
+    Older configurations automatically receive compatible rule defaults.
+    .PARAMETER Rules
+    Optional JSON Rules object with boolean switches and PasswordSprayAccounts.
+    .EXAMPLE
+    Get-DetectionRules
+    #>
+    param($Rules=$null)
+    $settings=[ordered]@{SuccessAfterFailures=$true;PasswordSpray=$true;PasswordSprayAccounts=10;AdminGroupChange=$true}
+    if ($null -ne $Rules) {
+        if ($Rules -isnot [pscustomobject]) { throw 'Rules must be a JSON object.' }
+        foreach ($key in @($settings.Keys)) {
+            if ($Rules.PSObject.Properties[$key]) { $settings[$key]=$Rules.$key }
+        }
+    }
+    foreach ($key in @('SuccessAfterFailures','PasswordSpray','AdminGroupChange')) {
+        if ($settings[$key] -isnot [bool]) { throw "Rules.$key must be true or false." }
+    }
+    $count=$settings.PasswordSprayAccounts
+    if ($count -isnot [ValueType] -or $count -is [bool] -or $count -lt 2 -or $count -gt 100000 -or $count -ne [int]$count) {
+        throw 'Rules.PasswordSprayAccounts must be an integer from 2 to 100000.'
+    }
+    return [pscustomobject]$settings
+}
+
 function Read-MonitorConfig {
     <#
     .SYNOPSIS
@@ -95,6 +124,8 @@ function Read-MonitorConfig {
     if ($config.Threshold -lt 2 -or $config.Threshold -gt 100000 -or $config.Threshold -ne [int]$config.Threshold -or $config.WindowSeconds -lt 1 -or $config.WindowSeconds -gt 86400 -or $config.WindowSeconds -ne [int]$config.WindowSeconds) { throw 'Invalid threshold or time window.' }
     if ($config.OverlapSeconds -lt $config.WindowSeconds -or $config.InitialLookbackMinutes*60 -lt $config.WindowSeconds) { throw 'The initial lookback and overlap must each cover at least one detection window.' }
     if (!$config.OutputRoot) { throw 'OutputRoot is missing from the configuration.' }
+    $rules=if ($config.PSObject.Properties['Rules']) { Get-DetectionRules $config.Rules } else { Get-DetectionRules }
+    $config | Add-Member -NotePropertyName Rules -NotePropertyValue $rules -Force
     foreach ($setting in @('PollIntervalSeconds','DashboardRefreshSeconds')) {
         $default=if ($setting -eq 'PollIntervalSeconds') {5} else {1}
         $maximum=if ($setting -eq 'PollIntervalSeconds') {86400} else {60}

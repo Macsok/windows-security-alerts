@@ -76,11 +76,11 @@ function Export-MonitorReports {
     [CmdletBinding()]
     param($State, [Parameter(Mandatory)][string]$Root, [ValidateSet('DEMO','LIVE')][string]$Mode='DEMO', $Status=$null)
     $reportDir = Join-Path $Root 'reports'; [void][IO.Directory]::CreateDirectory($reportDir)
-    $columns = @('TimeCreated','IncidentType','EventId','IpAddress','Account','AttemptCount','Severity','AlertId')
+    $columns = @('TimeCreated','IncidentType','EventId','IpAddress','Account','AttemptCount','Severity','Reason','AlertId')
     $rows = @($State.Alerts | ForEach-Object {
         [pscustomobject][ordered]@{
             TimeCreated=$_.TimeCreated; IncidentType=$_.Type; EventId=$_.EventId; IpAddress=$_.IpAddress
-            Account=$_.Account; AttemptCount=$_.Count; Severity=$_.Severity; AlertId=$_.AlertId
+            Account=$_.Account; AttemptCount=$_.Count; Severity=$_.Severity; Reason=$_.Reason; AlertId=$_.AlertId
         }
     })
     $csvRows = @($rows | ForEach-Object {

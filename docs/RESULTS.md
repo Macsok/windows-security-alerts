@@ -1,5 +1,24 @@
 # Validation results and acceptance status
 
+## Additional detection rules: 22 October 2026
+
+Added success after repeated failures, possible password spraying across distinct accounts,
+and local Administrators membership changes identified by group SID. Optional switches and
+the spray account threshold are under Rules; older local configurations receive defaults.
+Reports now include the reason for each alert. The original DEMO remains 17 events / 2 alerts.
+
+Executed on Windows PowerShell 5.1: **31 core + 9 LIVE/mock + 7 English/share + 5 reporting/help
++ 5 Discord + 17 additional-rule tests = 74 PASS, 0 FAIL**. The basic CI checks also passed locally.
+The new suite covers positive/negative cases, 120-second boundaries, context matching, missing
+fields, group SID/member/actor XML data, configurable switches, legacy configuration/state,
+restart delivery deduplication, late events, and HTML/CSV encoding.
+
+Demo-ExtraRules.ps1 generated 17 synthetic events, 6 alerts (3 original and 3 additional),
+HTML/CSV, an alert log and local email previews. Repeating it preserved delivery receipts.
+The LIVE integration check used a mocked log source. No real logon attempts, group changes,
+SMTP sends or webhooks were performed by these tests. Real Windows generation and ingestion
+of the new scenarios, and actual delivery of their notifications, were not tested.
+
 ## Basic GitHub Actions checks
 
 The workflow now runs Run-SmokeTests.ps1: PowerShell syntax, an isolated DEMO process,

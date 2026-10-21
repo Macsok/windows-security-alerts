@@ -6,6 +6,12 @@
   "PollIntervalSeconds": 5,
   "DashboardRefreshSeconds": 1,
   "OutputRoot": "runtime",
+  "Rules": {
+    "SuccessAfterFailures": true,
+    "PasswordSpray": true,
+    "PasswordSprayAccounts": 10,
+    "AdminGroupChange": true
+  },
   "Discord": {
     "Enabled": false,
     "WebhookUrl": "", 

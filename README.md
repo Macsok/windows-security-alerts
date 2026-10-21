@@ -4,6 +4,32 @@ Windows 10/11. Use **64-bit Windows PowerShell 5.1 as administrator**.
 Five failed logons (4625), from one IP or for one account within 120 seconds, create an alert.
 Logs are checked every 5 seconds; the dashboard refreshes every second.
 
+## Detection rules
+
+| Rule | Default trigger |
+|---|---|
+| Repeated failed logons | 5 failures (4625), one IP or account, within 120 seconds |
+| Success after failures | 5 failures followed by 4624, same account, IP, computer and logon type, all within 120 seconds |
+| Possible password spraying | Failures for 10 distinct accounts from one IP within 120 seconds |
+| Local administrator added | Event 4732 targeting group SID `S-1-5-32-544` |
+
+Existing warnings for account lockout, cleared logs and new services remain enabled.
+Alerts require review; they do not prove an attack. Settings are under `Rules` in `config.example.json`.
+Set a rule's switch to `false` in `config.local.json` to disable it. `PasswordSprayAccounts` changes the
+distinct-account threshold; `Threshold` and `WindowSeconds` control the logon rules.
+Older local configurations receive the new defaults automatically. Saved history is reanalyzed,
+so new rules can report earlier events; existing incidents stay deduplicated.
+
+Safe demonstration of the three additional rules:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Demo-ExtraRules.ps1
+Start-Process .\runtime\rules-demo\reports\dashboard.html
+```
+
+Expected on first run: **17 synthetic events, 6 alerts** (3 original and 3 additional), plus local email previews.
+Repeat: **NewAlerts=0**. Nothing is sent and no Windows accounts or groups are changed.
+
 ## 1. Install
 
 Download and extract the repository ZIP, or:
@@ -127,6 +153,8 @@ Start-Process .\runtime\demo\reports\team-report.html
 Use `-Mode LIVE` for real events. Includes the last 24 hours of available history
 (DEMO uses its fixed sample dates). Charts need internet. The basic dashboard needs no extra modules.
 Events 4720, 4722, 4724 and 4732 require the corresponding Windows account-management auditing policies.
+For real administrator-membership alerts, enable **Audit Security Group Management: Success**
+under Advanced Audit Policy > Account Management. [Microsoft instructions](https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/audit-security-group-management).
 [PSWriteHTML documentation](https://github.com/EvotecIT/PSWriteHTML).
 
 ## Discord
@@ -191,6 +219,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-LiveTests.ps
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-EnglishTests.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-ReportTests.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-DiscordTests.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-RuleTests.ps1
 Get-Help .\Start-Live.ps1 -Detailed
 . .\Get-Logs.ps1
 Get-Help Get-WindowsLogs -Full

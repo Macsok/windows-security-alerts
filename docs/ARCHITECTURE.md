@@ -24,9 +24,36 @@ The dashboard is static HTML with a configurable refresh (one second by default)
 
 Events: `EventKey, TimeCreated, EventId, RecordId, LogName, MachineName, ProviderName, UserName, Account, IpAddress, LogonType`. Times are UTC ISO 8601. EventKey hashes machine, channel, provider, record ID, time, and event ID, handling record-number reuse after a cleared log. XML EventData/UserData fields are independent of localized Message text.
 
+New events also retain `GroupSid, MemberSid, MemberName, ActorAccount` from XML. Existing saved events
+remain readable without these fields; old 4732 records lacking a group SID cannot be classified as
+administrator additions. No account-name lookup or extra network service is required.
+
 Accounts include domains when available and are grouped case-insensitively. IPv4-mapped IPv6 is normalized. Missing, wildcard, or invalid IPs become null and never form a shared unknown-IP group. Missing accounts remain null. Raw account names are not translated.
 
-Alerts: `AlertId, TimeCreated, Type, Dimension, Entity, EventId, IpAddress, Account, Count, WindowStart, WindowEnd, Severity, Reason`. Dimensions are `IP`, `Account`, and `Event`; severities are `High` and `Medium`. Event 4624 supplies context. Events 4740, 1102, 104, and 7045 create review warnings, not assertions of an attack.
+Alerts: `AlertId, TimeCreated, Type, Dimension, Entity, EventId, IpAddress, Account, Count, WindowStart, WindowEnd, Severity, Reason`. Dimensions are `IP`, `Account`, and `Event`; severities are `High` and `Medium`. Event 4624 can trigger success-after-failures correlation. Events 4740, 1102, 104, and 7045 create review warnings, not assertions of an attack.
+
+## Additional rules
+
+- Success after failures: a queue per computer/account/IP/logon type correlates 4625 with 4624.
+  At least Threshold failures and the success must all fit within WindowSeconds. Each success
+  clears its queue, including a success below threshold. Both IPs may be missing; a known IP
+  is never matched to a missing or different IP. Equal timestamps use record ID ordering.
+- Possible password spraying: each computer/IP has a sliding queue and a case-insensitive
+  account counter. The default is 10 distinct accounts in WindowSeconds; repeats for the
+  same account do not increase this count. Missing IPs or accounts do not qualify. One alert
+  covers sustained activity. Count is the number of failed events, not the distinct-account count.
+- Local administrator addition: 4732 must identify target group SID S-1-5-32-544, independent
+  of the Windows display language. MemberName falls back to MemberSid; the actor is reported
+  separately. This requires successful Security Group Management auditing on Windows.
+
+Rules are enabled by default and configurable under Rules; old local configurations receive
+defaults in memory. Existing rule IDs are preserved. New rules use separate hash prefixes,
+success alerts identify the successful event, and late spray evidence uses the existing overlap
+deduplication within the same rule. Saved history is replayed when new rules become available.
+The separate Demo-ExtraRules tool uses synthetic data and only local TEST notifications.
+
+References: [4732 XML fields](https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/auditing/event-4732),
+[well-known group SIDs](https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-security-identifiers).
 
 ## Sliding window
 

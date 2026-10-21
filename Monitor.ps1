@@ -1,15 +1,15 @@
-﻿. "$PSScriptRoot/Get-Logs.ps1"
+Add-Type -AssemblyName System.Net.Http
+. "$PSScriptRoot/Get-Logs.ps1"
 . "$PSScriptRoot/Detect-Attacks.ps1"
 . "$PSScriptRoot/Generate-Reports.ps1"
 . "$PSScriptRoot/Send-Notification.ps1"
 . "$PSScriptRoot/New-DemoEvents.ps1"
+. "$PSScriptRoot/Send-Discord.ps1"
 
 function Invoke-MonitorCycle {
     [CmdletBinding()]
-    param([ValidateSet('LIVE','DEMO')][string]$Mode='LIVE', [Parameter(Mandatory)][string]$ConfigPath, [switch]$SendEmail,
-        [ValidateRange(0,86400)][int]$IntervalSeconds=0)
+    param([ValidateSet('LIVE','DEMO')][string]$Mode='LIVE', [Parameter(Mandatory)][string]$ConfigPath, [switch]$SendEmail)
     $config=Read-MonitorConfig $ConfigPath
-    if ($IntervalSeconds -gt 0) { $config.PollIntervalSeconds=$IntervalSeconds }
     $root=Join-Path ([IO.Path]::GetFullPath($config.OutputRoot)) $Mode.ToLowerInvariant()
     [void][IO.Directory]::CreateDirectory($root)
     $lock=$null
@@ -27,11 +27,29 @@ function Invoke-MonitorCycle {
         }
         $new=@(Update-MonitorDetection -State $state -Events $events -Threshold $config.Threshold -WindowSeconds $config.WindowSeconds)
         Save-JsonAtomic $path $state
+
+        # Discord: send every saved alert that has not been delivered to Discord yet.
+        $discordOn = $config.PSObject.Properties['Discord'] -and $config.Discord.PSObject.Properties['Enabled'] -and $config.Discord.Enabled -and $config.Discord.WebhookUrl
+        if ($discordOn) {
+            $sentToDiscord=@{}; foreach ($delivery in $state.Deliveries) { if ($delivery.Mode -eq 'Discord') { $sentToDiscord[$delivery.AlertId]=$true } }
+            $discordAlerts=@($state.Alerts | Where-Object { !$sentToDiscord.ContainsKey($_.AlertId) })
+            if ($discordAlerts.Count -gt 0) {
+                try {
+                    . "$PSScriptRoot/Send-Discord.ps1"
+                    $thumb=if ($config.Discord.PSObject.Properties['ThumbnailUrl']) { [string]$config.Discord.ThumbnailUrl } else { '' }
+                    Send-DiscordAlert -Alerts $discordAlerts -WebhookUrl ([string]$config.Discord.WebhookUrl) -Mode $Mode -ThumbnailUrl $thumb
+                    foreach ($alert in $discordAlerts) { $state.Deliveries=@($state.Deliveries)+[pscustomobject]@{AlertId=$alert.AlertId;Mode='Discord';TimeUtc=[DateTime]::UtcNow.ToString('o')} }
+                    Save-JsonAtomic $path $state
+                } catch {
+                    # Do not log the exception text: it may contain the webhook URL.
+                    Write-Diagnostic $root "DISCORD_FAILED ($($_.Exception.GetType().Name)): check the PSDsHook module, webhook URL and network. Alerts will be retried."
+                }
+            }
+        }
+
         $mailMode=if ($SendEmail) {'Send'} else {'Test'}
         $smtpMessage=if ($SendEmail) {'Waiting to send notifications'} else {'TEST: saving .eml files; email delivery is disabled.'}
         $status=[pscustomobject]@{Mode=$Mode;Health=$health;LastAttemptUtc=$end.ToString('o');Sources=$sources;NotificationMode=$mailMode;SmtpMessage=$smtpMessage;PendingNotifications=0}
-        $status | Add-Member -NotePropertyName PollIntervalSeconds -NotePropertyValue ([int]$config.PollIntervalSeconds)
-        $status | Add-Member -NotePropertyName DashboardRefreshSeconds -NotePropertyValue ([int]$config.DashboardRefreshSeconds)
         # Write reports and the alert log before contacting SMTP.
         $reports=Export-MonitorReports -State $state -Root $root -Mode $Mode -Status $status
         $canNotify=$true

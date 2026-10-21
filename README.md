@@ -249,7 +249,50 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Start-Live.ps1 -Config
 
 Otherwise the loop reloads PollIntervalSeconds from local configuration between cycles. Restart a loop launched by an older code version once after upgrading. Stop with Ctrl+C; closing the console, logging out, sleep, or shutdown interrupts this mode.
 
-## 9. Optional: prove detection with real failed logons
+### 9. Set up Discord notifications
+
+Skip this section if you do not want chat alerts. To enable real-time Discord alerts, you need a valid Webhook URL from your Discord server. The monitoring script uses the `PSDsHook` module and automatically loads the required `.NET` HTTP assemblies.
+
+**Configure Discord Webhook**
+1. In your Discord server, go to **Server Settings > Integrations > Webhooks**.
+2. Create a New Webhook, select the target channel, and copy the Webhook URL.
+3. Run the setup locally:
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Start-Live.ps1 -SetupDiscord
+```
+
+Answer `Y` to the prompt and paste the full Webhook URL without spaces. The link must match the standard Discord API format (`https://discord.com/api/webhooks/...` or `https://discordapp.com/api/webhooks/...`).
+
+Setup validates the URL format and stores it directly in `.\config.local.json` under the `"Discord"` property block. Unlike SMTP credentials, it does not require Windows DPAPI protection, but you should treat the URL as a password. Do not commit `config.local.json` to source code or share the URL publicly, as it allows anyone to post messages to your channel.
+
+**Expected:**
+```text
+Webhook config:
+Discord option On? (Y/N): Y
+Paste your webhook link: [https://discord.com/api/webhooks/](https://discord.com/api/webhooks/)...
+Discord config saved.
+```
+If you enter an invalid URL, the setup will reject it with `Wrong webhook link, skipped.` Correct the URL and rerun the setup.
+
+**Verify Discord delivery**
+The following command sends ONE synthetic message to Discord to verify the module and your webhook configuration. It touches no state or logs:
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Test-Discord.ps1
+```
+
+**Expected:** `Test message sent. Check your Discord channel.` printed in the console. A red embedded message titled "Security Alert" with synthetic target data will appear in the configured Discord channel.
+
+**Start continuous LIVE with Discord**
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Start-Live.ps1
+```
+
+Once configured, the standard LIVE mode automatically enables immediate delivery of all new alerts to Discord as they are detected in the cycle. If you want both Email and Discord deliveries simultaneously, simply append the email switch:
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Start-Live.ps1 -SendEmail
+```
+
+## 10. Optional: prove detection with real failed logons
 
 Use your own test PC/VM and a disposable **local** account. Repeated failures can lock an account, so do not test against your daily, administrator, or domain account. This procedure is separate from synthetic DEMO. No failed logons are generated automatically by the application.
 

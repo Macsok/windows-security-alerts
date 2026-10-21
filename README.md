@@ -129,7 +129,7 @@ Use `-Mode LIVE` for real events. Includes the last 24 hours of available histor
 Events 4720, 4722, 4724 and 4732 require the corresponding Windows account-management auditing policies.
 [PSWriteHTML documentation](https://github.com/EvotecIT/PSWriteHTML).
 
-## Discord (Mewa-zip's integration)
+## Discord
 
 In Discord: **Server Settings > Integrations > Webhooks**, create a new webhook and copy its URL.
 Stop the monitor, then run:
@@ -182,7 +182,10 @@ Stop-ScheduledTask -TaskName OSO-Live
 
 ## Tests and help
 
+GitHub Actions runs basic syntax and DEMO checks. Run the full test suites locally when needed.
+
 ```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-SmokeTests.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-Tests.ps1 -Stage 6
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-LiveTests.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-EnglishTests.ps1

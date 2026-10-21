@@ -1,6 +1,6 @@
-# Preserved Mewa-zip contributions
+# Discord integration
 
-All 10 Mewa-zip commits on main are ancestors of simplify-project. No commits were removed or rewritten.
+The original Discord commits on main are ancestors of simplify-project. No commits were removed or rewritten.
 
 | Contribution | Current version |
 |---|---|

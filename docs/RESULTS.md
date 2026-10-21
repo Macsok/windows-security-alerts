@@ -1,12 +1,23 @@
 # Validation results and acceptance status
 
-## Mewa-zip Discord preservation
+## Basic GitHub Actions checks
 
-After fetching origin, all 10 Mewa-zip commits on origin/main were verified as ancestors of
+The workflow now runs Run-SmokeTests.ps1: PowerShell syntax, an isolated DEMO process,
+nonempty HTML/CSV/alert-log/state output, detected events and incidents, and a local email preview.
+It uses no external modules, event-log permissions, credentials or messaging services.
+The full suites remain available for local validation.
+
+Local checks passed in the working directory and a clean source-only copy. A deliberately
+broken entry point that exits successfully without producing reports was correctly rejected.
+This checks basic startup and outputs; it does not validate real log collection or delivery.
+
+## Discord integration
+
+After fetching origin, all 10 original Discord commits on origin/main were verified as ancestors of
 simplify-project. Restored -SetupDiscord and added its previously missing configuration script,
 automatic PSDsHook installation, and short setup/test instructions. Existing Discord embed,
 batching, retry/delivery receipts, thumbnail configuration and explicit test script remain.
-See [MEWA_CHANGES.md](MEWA_CHANGES.md) for the file-by-file preservation record.
+See [DISCORD_CHANGES.md](DISCORD_CHANGES.md) for the file-by-file preservation record.
 
 Tests: **31 core + 9 LIVE/mock + 7 English/share + 5 reporting/help + 5 Discord = 57 PASS, 0 FAIL**.
 New Discord checks mock installation, password input, module availability and Windows logs;

@@ -72,11 +72,14 @@ Use a disposable local account. In a second administrator PowerShell:
 
 ```powershell
 net user OSO-Demo * /add
-runas /user:.\OSO-Demo cmd.exe
+runas.exe /noprofile "/user:$env:COMPUTERNAME\OSO-Demo" cmd.exe
 ```
 
 The first command sets its password. Run the **second command five times within 120 seconds**,
 entering a wrong password each time. Local lockout policy can stop further attempts.
+Type a non-empty password manually; no characters appear while typing. Expect error **1326** for a wrong password.
+If you get `Unable to acquire user password`, retry in a separate Windows PowerShell window
+(Win+R, `powershell.exe -NoProfile`). This message alone does not confirm a failed logon was recorded.
 Wait about 5 seconds. Expect an account alert; an IP alert depends on whether Windows records an IP.
 
 Check that Windows recorded failures:

@@ -1,0 +1,33 @@
+# Local output, dependencies, and share archives
+/runtime/
+/test-results/
+/vendor/
+/dist/
+# Include only the reviewed configuration template (also excludes extension typos).
+/config.*
+!/config.example.json
+# Credentials, environment files, and private keys
+*.credential.xml
+*.clixml
+*.pem
+*.key
+*.pfx
+*.p12
+.env
+.env.*
+# Local backups and editor/agent settings
+*.tmp
+*.bak
+*.zip
+*.7z
+*.evtx
+.vs/
+.vscode/
+.idea/
+.codex/
+.agents/
+.aws/
+Thumbs.db
+Desktop.ini
+tools/MailKitDependencies/bin/
+tools/MailKitDependencies/obj/

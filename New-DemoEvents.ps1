@@ -1,0 +1,27 @@
+﻿. "$PSScriptRoot/Get-Logs.ps1"
+
+function New-SyntheticEvent {
+    param([int]$RecordId, [datetime]$Time = ([datetime]'2026-01-15T10:00:00Z'),
+        [int]$EventId = 4625, [AllowNull()][string]$Ip = '192.0.2.10',
+        [AllowNull()][string]$User = 'student', [string]$Domain = 'LAB')
+    $ipXml = [Security.SecurityElement]::Escape($Ip)
+    $userXml = [Security.SecurityElement]::Escape($User)
+    $domainXml = [Security.SecurityElement]::Escape($Domain)
+    $xml = @"
+<Event xmlns="http://schemas.microsoft.com/win/2004/08/events/event">
+ <System><Provider Name="Microsoft-Windows-Security-Auditing"/><EventID>$EventId</EventID>
+ <TimeCreated SystemTime="$($Time.ToUniversalTime().ToString('o'))"/><EventRecordID>$RecordId</EventRecordID><Channel>Security</Channel><Computer>DEMO-PC</Computer></System>
+ <EventData><Data Name="TargetUserName">$userXml</Data><Data Name="TargetDomainName">$domainXml</Data><Data Name="IpAddress">$ipXml</Data><Data Name="LogonType">3</Data></EventData>
+</Event>
+"@
+    ConvertFrom-WindowsEventXml $xml
+}
+
+function Get-DemoEvents {
+    $base = [datetime]'2026-01-15T10:00:00Z'
+    New-SyntheticEvent -RecordId 1 -Time $base -EventId 4624 -User 'anna'
+    1..3 | ForEach-Object { New-SyntheticEvent -RecordId (10+$_) -Time $base.AddSeconds($_*10) -Ip '192.0.2.20' -User 'piotr' }
+    1..7 | ForEach-Object { New-SyntheticEvent -RecordId (20+$_) -Time $base.AddSeconds(200+$_*10) -Ip '192.0.2.50' -User "konto$_" }
+    1..5 | ForEach-Object { New-SyntheticEvent -RecordId (40+$_) -Time $base.AddSeconds(400+$_*15) -Ip "198.51.100.$_" -User 'administrator' }
+    New-SyntheticEvent -RecordId 60 -Time $base.AddSeconds(500) -EventId 4624 -User 'anna'
+}

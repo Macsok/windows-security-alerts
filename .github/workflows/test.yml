@@ -1,0 +1,24 @@
+name: PowerShell tests
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Core synthetic tests
+        run: .\tests\Run-Tests.ps1 -Stage 6
+      - name: Live recovery and notification tests with mocks
+        run: .\tests\Run-LiveTests.ps1
+      - name: English compatibility and share checks
+        run: .\tests\Run-EnglishTests.ps1
+      - name: Check share package contents
+        run: .\tools\Test-ShareReadiness.ps1

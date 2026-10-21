@@ -1,0 +1,12 @@
+﻿[CmdletBinding()]
+param([ValidateSet('Security','System')][string[]]$LogName=@('Security','System'),
+    [ValidateRange(1,3650)][int]$LookbackDays=1)
+. "$(Split-Path $PSScriptRoot)/Get-Logs.ps1"
+foreach ($name in $LogName) {
+    try {
+        $events=@(Get-WindowsLogs -LogName $name -StartTime ([DateTime]::UtcNow.AddDays(-$LookbackDays)) -EndTime ([DateTime]::UtcNow))
+        [pscustomobject]@{LogName=$name;Status='Read completed';Count=$events.Count;EventIds=(@($events | Select-Object -ExpandProperty EventId -Unique) -join ',');Error=$null}
+    } catch {
+        [pscustomobject]@{LogName=$name;Status='Read failed';Count=0;EventIds='';Error=$_.Exception.Message}
+    }
+}

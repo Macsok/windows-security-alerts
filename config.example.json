@@ -1,0 +1,16 @@
+{
+  "Threshold": 5,
+  "WindowSeconds": 120,
+  "InitialLookbackMinutes": 10,
+  "OverlapSeconds": 180,
+  "OutputRoot": "runtime",
+  "Smtp": {
+    "Host": "",
+    "Port": 587,
+    "Security": "StartTls",
+    "From": "",
+    "To": [],
+    "CredentialPath": "",
+    "LibraryDirectory": "vendor/mailkit"
+  }
+}

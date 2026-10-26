@@ -27,11 +27,10 @@ function Get-ShareFiles {
         'Send-Notification.ps1','Send-Discord.ps1','report.ps1','Monitor.ps1','main.ps1','New-DemoEvents.ps1',
         'Start-Live.ps1','Start-Monitor.ps1','START-LIVE.cmd',
         'tools/MailKitDependencies/MailKitDependencies.csproj',
-        'tools/MailKitDependencies/NuGet.Config','tools/MailKitDependencies/packages.lock.json',
-        '.github/workflows/test.yml'
+        'tools/MailKitDependencies/NuGet.Config','tools/MailKitDependencies/packages.lock.json'
     )
     foreach ($path in $relativePaths) { Get-Item -LiteralPath (Join-Path $Root $path) -ErrorAction Stop }
-    foreach ($folder in @('docs','tools','tests')) {
+    foreach ($folder in @('docs','tools')) {
         $filter=if ($folder -eq 'docs') {'*.md'} else {'*.ps1'}
         Get-ChildItem -LiteralPath (Join-Path $Root $folder) -Filter $filter -File
     }

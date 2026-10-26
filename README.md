@@ -208,22 +208,10 @@ Stop-ScheduledTask -TaskName OSO-Live
 | SMTP pending | Check `logs/diagnostic.log`; sending retries automatically |
 | MailKit build fails | Install SDK; check NuGet access and .NET Framework 4.8+ |
 
-## Tests and help
-
-GitHub Actions runs basic syntax and DEMO checks. Run the full test suites locally when needed.
+## Help
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-SmokeTests.ps1
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-Tests.ps1 -Stage 6
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-LiveTests.ps1
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-EnglishTests.ps1
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-ReportTests.ps1
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-DiscordTests.ps1
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-RuleTests.ps1
 Get-Help .\Start-Live.ps1 -Detailed
 . .\Get-Logs.ps1
 Get-Help Get-WindowsLogs -Full
 ```
-
-Synthetic tests do not prove real Windows log access or SMTP delivery on another PC. Verify LIVE there.
-[Presentation and questions](docs/PRESENTATION.md) | [Architecture](docs/ARCHITECTURE.md)

@@ -84,6 +84,6 @@ English migration updates only recognized legacy application labels. The origina
 3. Detector; six required scenarios, boundaries, and restart persistence.
 4. CSV/HTML/alert log; encoding, counters, and history.
 5. MailKit, TEST previews, retry and delivery deduplication.
-6. Main cycle, DEMO, integration, continuous loop, scheduling, and presentation.
+6. Main cycle, DEMO, integration, continuous loop, and scheduling.
 
 See [RESULTS.md](RESULTS.md) for actual verification and outstanding real-world checks.

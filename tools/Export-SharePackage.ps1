@@ -27,4 +27,4 @@ try {
         [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive,$file.FullName,$relative,[IO.Compression.CompressionLevel]::Optimal)
     }
 } finally { $archive.Dispose() }
-[pscustomobject]@{Archive=$OutputPath;Scope='Source, documentation, tests, and synthetic examples only'}
+[pscustomobject]@{Archive=$OutputPath;Scope='Source, documentation, and synthetic examples only'}

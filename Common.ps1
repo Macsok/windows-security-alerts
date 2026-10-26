@@ -1,7 +1,30 @@
-﻿Set-StrictMode -Version Latest
+﻿<#
+.SYNOPSIS
+Shared configuration, state, encoding and diagnostic helpers.
+.DESCRIPTION
+Shared configuration, state, encoding and diagnostic helpers.
+.EXAMPLE
+. .\Common.ps1; Read-MonitorConfig -Path .\config.local.json
+#>
+Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 function Write-Utf8File {
+    <#
+    .SYNOPSIS
+    Writes UTF-8 text and creates missing parent folders.
+    .DESCRIPTION
+    Writes UTF-8 text and creates missing parent folders.
+    .PARAMETER Path
+    Path of the file to read or write.
+    .PARAMETER Text
+    Text to write or hash.
+    .PARAMETER NoBom
+    Writes UTF-8 without a byte-order mark.
+    .EXAMPLE
+    Write-Utf8File -Path .\runtime\note.txt -Text 'Example'
+    #>
+
     param([string]$Path, [AllowEmptyString()][string]$Text, [switch]$NoBom)
     $parent = Split-Path -Parent $Path
     if ($parent) { [void][IO.Directory]::CreateDirectory($parent) }
@@ -9,6 +32,19 @@ function Write-Utf8File {
 }
 
 function Save-JsonAtomic {
+    <#
+    .SYNOPSIS
+    Saves JSON atomically, keeping a backup of the previous state.
+    .DESCRIPTION
+    Saves JSON atomically, keeping a backup of the previous state.
+    .PARAMETER Path
+    Path of the file to read or write.
+    .PARAMETER Value
+    Value to serialize or encode.
+    .EXAMPLE
+    Save-JsonAtomic -Path .\runtime\demo\state.json -Value $state
+    #>
+
     param([string]$Path, $Value)
     $temp = "$Path.$([guid]::NewGuid().ToString('N')).tmp"
     try {
@@ -19,6 +55,19 @@ function Save-JsonAtomic {
 }
 
 function Write-TextAtomic {
+    <#
+    .SYNOPSIS
+    Replaces a text file atomically so readers see a complete file.
+    .DESCRIPTION
+    Replaces a text file atomically so readers see a complete file.
+    .PARAMETER Path
+    Path of the file to read or write.
+    .PARAMETER Text
+    Text to write or hash.
+    .EXAMPLE
+    Write-TextAtomic -Path .\runtime\note.txt -Text 'Example'
+    #>
+
     param([string]$Path, [AllowEmptyString()][string]$Text)
     $temporary="$Path.$([guid]::NewGuid().ToString('N')).tmp"
     try {
@@ -28,13 +77,55 @@ function Write-TextAtomic {
     } finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary } }
 }
 
+function Get-DetectionRules {
+    <#
+    .SYNOPSIS
+    Applies defaults and validates the optional detection rules.
+    .DESCRIPTION
+    Older configurations automatically receive compatible rule defaults.
+    .PARAMETER Rules
+    Optional JSON Rules object with boolean switches and PasswordSprayAccounts.
+    .EXAMPLE
+    Get-DetectionRules
+    #>
+    param($Rules=$null)
+    $settings=[ordered]@{SuccessAfterFailures=$true;PasswordSpray=$true;PasswordSprayAccounts=10;AdminGroupChange=$true}
+    if ($null -ne $Rules) {
+        if ($Rules -isnot [pscustomobject]) { throw 'Rules must be a JSON object.' }
+        foreach ($key in @($settings.Keys)) {
+            if ($Rules.PSObject.Properties[$key]) { $settings[$key]=$Rules.$key }
+        }
+    }
+    foreach ($key in @('SuccessAfterFailures','PasswordSpray','AdminGroupChange')) {
+        if ($settings[$key] -isnot [bool]) { throw "Rules.$key must be true or false." }
+    }
+    $count=$settings.PasswordSprayAccounts
+    if ($count -isnot [ValueType] -or $count -is [bool] -or $count -lt 2 -or $count -gt 100000 -or $count -ne [int]$count) {
+        throw 'Rules.PasswordSprayAccounts must be an integer from 2 to 100000.'
+    }
+    return [pscustomobject]$settings
+}
+
 function Read-MonitorConfig {
+    <#
+    .SYNOPSIS
+    Loads configuration, validates settings and resolves relative paths.
+    .DESCRIPTION
+    Loads configuration, validates settings and resolves relative paths.
+    .PARAMETER Path
+    Path of the file to read or write.
+    .EXAMPLE
+    Read-MonitorConfig -Path .\config.local.json
+    #>
+
     param([string]$Path)
     $full=(Resolve-Path -LiteralPath $Path).Path
     $config=Get-Content -LiteralPath $full -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($config.Threshold -lt 2 -or $config.Threshold -gt 100000 -or $config.Threshold -ne [int]$config.Threshold -or $config.WindowSeconds -lt 1 -or $config.WindowSeconds -gt 86400 -or $config.WindowSeconds -ne [int]$config.WindowSeconds) { throw 'Invalid threshold or time window.' }
     if ($config.OverlapSeconds -lt $config.WindowSeconds -or $config.InitialLookbackMinutes*60 -lt $config.WindowSeconds) { throw 'The initial lookback and overlap must each cover at least one detection window.' }
     if (!$config.OutputRoot) { throw 'OutputRoot is missing from the configuration.' }
+    $rules=if ($config.PSObject.Properties['Rules']) { Get-DetectionRules $config.Rules } else { Get-DetectionRules }
+    $config | Add-Member -NotePropertyName Rules -NotePropertyValue $rules -Force
     foreach ($setting in @('PollIntervalSeconds','DashboardRefreshSeconds')) {
         $default=if ($setting -eq 'PollIntervalSeconds') {5} else {1}
         $maximum=if ($setting -eq 'PollIntervalSeconds') {86400} else {60}
@@ -50,6 +141,17 @@ function Read-MonitorConfig {
 }
 
 function Get-TextHash {
+    <#
+    .SYNOPSIS
+    Returns the SHA-256 identifier of a UTF-8 string.
+    .DESCRIPTION
+    Returns the SHA-256 identifier of a UTF-8 string.
+    .PARAMETER Text
+    Text to write or hash.
+    .EXAMPLE
+    Get-TextHash -Text 'event-123'
+    #>
+
     param([string]$Text)
     $sha = [Security.Cryptography.SHA256]::Create()
     try { ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($Text)))).Replace('-', '').ToLowerInvariant() }
@@ -57,15 +159,46 @@ function Get-TextHash {
 }
 
 function ConvertTo-UtcDate {
+    <#
+    .SYNOPSIS
+    Parses a saved timestamp and returns its UTC date.
+    .DESCRIPTION
+    Parses a saved timestamp and returns its UTC date.
+    .PARAMETER Value
+    Value to serialize or encode.
+    .EXAMPLE
+    ConvertTo-UtcDate -Value '2026-01-15T10:00:00Z'
+    #>
+
     param($Value)
     [DateTimeOffset]::Parse([string]$Value, [Globalization.CultureInfo]::InvariantCulture).UtcDateTime
 }
 
 function New-MonitorState {
+    <#
+    .SYNOPSIS
+    Creates an empty persistent monitoring state.
+    .DESCRIPTION
+    Creates an empty persistent monitoring state.
+    .EXAMPLE
+    New-MonitorState
+    #>
+
     [pscustomobject]@{ Version = 1; LastScanUtc = $null; Events = @(); Alerts = @(); Deliveries = @() }
 }
 
 function Update-AlertLanguage {
+    <#
+    .SYNOPSIS
+    Migrates legacy alert labels to English without changing identifiers.
+    .DESCRIPTION
+    Migrates legacy alert labels to English without changing identifiers.
+    .PARAMETER State
+    Monitoring state containing saved events, alerts and delivery receipts.
+    .EXAMPLE
+    Update-AlertLanguage -State $state
+    #>
+
     param($State)
     # Legacy values are retained only as migration inputs, never as new UI labels.
     # Keep identifiers, event data, delivery receipts, and timestamps unchanged.
@@ -92,6 +225,17 @@ function Update-AlertLanguage {
 }
 
 function Update-StatusLanguage {
+    <#
+    .SYNOPSIS
+    Migrates legacy monitoring status messages to English.
+    .DESCRIPTION
+    Migrates legacy monitoring status messages to English.
+    .PARAMETER Status
+    Current collection, notification and refresh status for the dashboard.
+    .EXAMPLE
+    Update-StatusLanguage -Status $status
+    #>
+
     param($Status)
     $messages = @{
         'Oczekiwanie na wysyłkę' = 'Waiting to send notifications'
@@ -110,6 +254,17 @@ function Update-StatusLanguage {
 }
 
 function Read-MonitorState {
+    <#
+    .SYNOPSIS
+    Loads saved history and receipts, or creates state for a first run.
+    .DESCRIPTION
+    Loads saved history and receipts, or creates state for a first run.
+    .PARAMETER Path
+    Path of the file to read or write.
+    .EXAMPLE
+    Read-MonitorState -Path .\runtime\demo\state.json
+    #>
+
     param([string]$Path)
     if (!(Test-Path -LiteralPath $Path)) { return New-MonitorState }
     # Corrupt state requires explicit recovery; never reset deduplication automatically.
@@ -123,6 +278,19 @@ function Read-MonitorState {
 }
 
 function Write-Diagnostic {
+    <#
+    .SYNOPSIS
+    Appends a timestamped diagnostic message to the local error log.
+    .DESCRIPTION
+    Appends a timestamped diagnostic message to the local error log.
+    .PARAMETER Root
+    Output folder for the selected mode, or source folder for sharing tools.
+    .PARAMETER Code
+    Sanitized diagnostic code or message to append to diagnostic.log.
+    .EXAMPLE
+    Write-Diagnostic -Root .\runtime\demo -Code 'TEST: diagnostic example'
+    #>
+
     param([string]$Root, [string]$Code)
     $path = Join-Path $Root 'logs/diagnostic.log'
     [void][IO.Directory]::CreateDirectory((Split-Path $path))

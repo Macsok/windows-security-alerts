@@ -1,14 +1,29 @@
-﻿. "$PSScriptRoot/Common.ps1"
+<#
+.SYNOPSIS
+Loads CSV, HTML and warning-log export functions.
+.DESCRIPTION
+Loads CSV, HTML and warning-log export functions.
+.EXAMPLE
+. .\Generate-Reports.ps1; Export-MonitorReports -State $state -Root .\runtime\demo
+#>
+. "$PSScriptRoot/Common.ps1"
 
 function ConvertTo-SafeCsvText {
+    <#
+    .SYNOPSIS
+    Escapes spreadsheet formula prefixes in untrusted CSV values.
+    #>
     param($Value)
     $text = [string]$Value
-    # Protect spreadsheets from formulas in untrusted account names.
     if ($text -match '^\s*[=+@\-]' -or $text -match '^[\t\r\n]') { return "'$text" }
     return $text
 }
 
 function ConvertTo-ReportTable {
+    <#
+    .SYNOPSIS
+    Builds an HTML table with encoded cell values.
+    #>
     param([AllowEmptyCollection()][object[]]$Rows, [string[]]$Columns)
     $html = '<div class="table-wrap"><table><thead><tr>'
     foreach ($column in $Columns) { $html += '<th>' + [Net.WebUtility]::HtmlEncode($column) + '</th>' }
@@ -24,33 +39,46 @@ function ConvertTo-ReportTable {
 }
 
 function Export-MonitorReports {
+    <#
+    .SYNOPSIS
+    Exports incidents, events, dashboard and warning log from saved state.
+    #>
     [CmdletBinding()]
     param($State, [Parameter(Mandatory)][string]$Root, [ValidateSet('DEMO','LIVE')][string]$Mode='DEMO', $Status=$null)
+    
     $reportDir = Join-Path $Root 'reports'; [void][IO.Directory]::CreateDirectory($reportDir)
-    $columns = @('TimeCreated','IncidentType','EventId','IpAddress','Account','AttemptCount','Severity','AlertId')
-    $rows = @($State.Alerts | ForEach-Object {
+    $columns = @('TimeCreated','IncidentType','EventId','IpAddress','Account','AttemptCount','Severity','Reason','AlertId')
+    
+    $rows = @($State.Alerts | Sort-Object TimeCreated -Descending | ForEach-Object {
         [pscustomobject][ordered]@{
             TimeCreated=$_.TimeCreated; IncidentType=$_.Type; EventId=$_.EventId; IpAddress=$_.IpAddress
-            Account=$_.Account; AttemptCount=$_.Count; Severity=$_.Severity; AlertId=$_.AlertId
+            Account=$_.Account; AttemptCount=$_.Count; Severity=$_.Severity; Reason=$_.Reason; AlertId=$_.AlertId
         }
     })
+    
     $csvRows = @($rows | ForEach-Object {
         $copy = [ordered]@{}; foreach ($column in $columns) { $copy[$column] = ConvertTo-SafeCsvText $_.$column }; [pscustomobject]$copy
     })
+    
     if ($csvRows.Count) { $csvRows | Export-Csv -LiteralPath (Join-Path $reportDir 'incidents.csv') -NoTypeInformation -Encoding UTF8 }
     else { Write-Utf8File (Join-Path $reportDir 'incidents.csv') (($columns | ForEach-Object {'"' + $_ + '"'}) -join ',') }
-    $eventRows = @($State.Events | ForEach-Object {
+    
+    $eventRows = @($State.Events | Sort-Object TimeCreated -Descending | ForEach-Object {
         [pscustomobject]@{TimeCreated=$_.TimeCreated;EventId=$_.EventId;RecordId=$_.RecordId;LogName=$_.LogName;IpAddress=$_.IpAddress;Account=(ConvertTo-SafeCsvText $_.Account);LogonType=$_.LogonType}
     })
+    
     if ($eventRows.Count) { $eventRows | Export-Csv -LiteralPath (Join-Path $reportDir 'events.csv') -NoTypeInformation -Encoding UTF8 }
     else { Write-Utf8File (Join-Path $reportDir 'events.csv') '"TimeCreated","EventId","RecordId","LogName","IpAddress","Account","LogonType"' }
-    $ips = @($State.Alerts | Where-Object Dimension -eq 'IP' | Group-Object Entity | ForEach-Object { [pscustomobject]@{IpAddress=$_.Name;IncidentCount=$_.Count} })
-    $accounts = @($State.Alerts | Where-Object Dimension -eq 'Account' | Group-Object Entity | ForEach-Object { [pscustomobject]@{Account=$_.Name;IncidentCount=$_.Count} })
+    
+    $ips = @($State.Alerts | Where-Object Dimension -eq 'IP' | Group-Object Entity | Sort-Object Count -Descending | ForEach-Object { [pscustomobject]@{IpAddress=$_.Name;IncidentCount=$_.Count} })
+    $accounts = @($State.Alerts | Where-Object Dimension -eq 'Account' | Group-Object Entity | Sort-Object Count -Descending | ForEach-Object { [pscustomobject]@{Account=$_.Name;IncidentCount=$_.Count} })
+    
     $incidentTable = ConvertTo-ReportTable $rows $columns
     $ipTable = ConvertTo-ReportTable $ips @('IpAddress','IncidentCount')
     $accountTable = ConvertTo-ReportTable $accounts @('Account','IncidentCount')
     $failures = @($State.Events | Where-Object EventId -eq 4625).Count
     $generated = [DateTime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss UTC')
+    
     $healthSection=''; $lastRun=''; $refreshSeconds=1; $staleSeconds=180
     if ($null -ne $Status) {
         if ($Status.PSObject.Properties['DashboardRefreshSeconds']) { $refreshSeconds=[int]$Status.DashboardRefreshSeconds }
@@ -67,16 +95,23 @@ function Export-MonitorReports {
         $pendingText=[Net.WebUtility]::HtmlEncode([string]$Status.PendingNotifications)
         $healthSection="<section class='$healthCss'><h2 id='health-label'>$healthLabel</h2><p id='freshness' data-last-run='$lastRun'>Last cycle UTC: $lastRun. $cadence Dashboard refreshes every $refreshSeconds seconds.</p>$sourceTable<p><strong>Notifications:</strong> $mailInfo Pending: $pendingText.</p></section>"
     }
+    
     $recentRows=@($State.Events | Sort-Object TimeCreated -Descending | Select-Object -First 50 | ForEach-Object {
         [pscustomobject]@{TimeUtc=$_.TimeCreated;LogName=$_.LogName;EventId=$_.EventId;RecordId=$_.RecordId;Account=$_.Account;IpAddress=$_.IpAddress}
     })
     $recentTable=ConvertTo-ReportTable $recentRows @('TimeUtc','LogName','EventId','RecordId','Account','IpAddress')
+    
     $html = @"
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="$refreshSeconds">
 <title>Windows Security Monitoring System</title>
 <style>
-:root{font-family:Segoe UI,Arial,sans-serif;color:#17293a;background:#eef3f8}body{margin:0}header{background:#102b46;color:white;padding:38px max(24px,5vw)}header p{color:#c5d5e5}h1{font-size:30px;max-width:850px;margin:14px 0}h2{font-size:20px}main{padding:28px max(24px,5vw)}.tag{letter-spacing:2px;font-size:12px;color:#80e0c6}.cards,.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.card,section{background:white;border:1px solid #d4dfe9;border-radius:12px;padding:22px;margin-bottom:24px}.number{font-size:38px;font-weight:650;margin-top:8px}.muted{color:#597086}section .table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;background:#edf3f8;color:#3b5268}td,th{padding:12px;border-bottom:1px solid #e1e8ef;overflow-wrap:anywhere}tr.high td:first-child{border-left:4px solid #d23b48}tr.high{background:#fff5f5}.grid{grid-template-columns:1fr 1fr}footer{font-size:13px;color:#597086;margin:10px 0 30px}@media(max-width:760px){.cards,.grid{grid-template-columns:1fr}h1{font-size:24px}}@media print{header{background:white;color:black}.card,section{break-inside:avoid}}
-.problem{border-left:6px solid #d23b48}.healthy{border-left:6px solid #147d64}.stale{color:#a01928;font-weight:bold}
+body{font-family:Arial,sans-serif;margin:24px;color:#222;background:white}
+h1{font-size:24px}h2{font-size:18px}section{margin:24px 0}
+.cards{display:flex;gap:32px}.number{font-size:24px;font-weight:bold}
+.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px;border:1px solid #ccc;text-align:left;overflow-wrap:anywhere}
+th{background:#eee}tr.high{background:#fee}.problem,.stale{color:#a00}
+.tag,.muted,footer{color:#555}footer{margin-top:24px}
 </style></head><body><header><span class="tag">OSO / SECURITY MONITOR / $Mode</span>
 <h1>Windows Security Monitoring System</h1><p>Report generated: $generated</p></header>
 <main>$healthSection<div class="cards"><div class="card"><span class="muted">Events analyzed</span><div class="number">$(@($State.Events).Count)</div></div>
@@ -91,7 +126,7 @@ function Export-MonitorReports {
 </script></body></html>
 "@
     Write-TextAtomic (Join-Path $reportDir 'dashboard.html') $html
-    # Rebuilding from persistent state preserves history without duplicate lines after a crash.
+    
     $lines = @($State.Alerts | ForEach-Object { $_ | ConvertTo-Json -Compress -Depth 8 })
     Write-TextAtomic (Join-Path $Root 'logs/alerts.log') (($lines -join [Environment]::NewLine) + [Environment]::NewLine)
     [pscustomobject]@{Html=(Join-Path $reportDir 'dashboard.html');Csv=(Join-Path $reportDir 'incidents.csv');AlertLog=(Join-Path $Root 'logs/alerts.log')}

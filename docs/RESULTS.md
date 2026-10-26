@@ -1,16 +1,60 @@
 # Validation results and acceptance status
 
+## Additional detection rules: 22 October 2026
+
+Added success after repeated failures, possible password spraying across distinct accounts,
+and local Administrators membership changes identified by group SID. Optional switches and
+the spray account threshold are under Rules; older local configurations receive defaults.
+Reports now include the reason for each alert. The original DEMO remains 17 events / 2 alerts.
+
+Executed on Windows PowerShell 5.1: **31 core + 9 LIVE/mock + 7 English/share + 5 reporting/help
++ 5 Discord + 17 additional-rule tests = 74 PASS, 0 FAIL**.
+The new suite covers positive/negative cases, 120-second boundaries, context matching, missing
+fields, group SID/member/actor XML data, configurable switches, legacy configuration/state,
+restart delivery deduplication, late events, and HTML/CSV encoding.
+
+Demo-ExtraRules.ps1 generated 17 synthetic events, 6 alerts (3 original and 3 additional),
+HTML/CSV, an alert log and local email previews. Repeating it preserved delivery receipts.
+The LIVE integration check used a mocked log source. No real logon attempts, group changes,
+SMTP sends or webhooks were performed by these tests. Real Windows generation and ingestion
+of the new scenarios, and actual delivery of their notifications, were not tested.
+
+## Discord integration
+
+After fetching origin, all 10 original Discord commits on origin/main were verified as ancestors of
+simplify-project. Restored -SetupDiscord and added its previously missing configuration script,
+automatic PSDsHook installation, and short setup/test instructions. Existing Discord embed,
+batching, retry/delivery receipts, thumbnail configuration and explicit test script remain.
+See [DISCORD_CHANGES.md](DISCORD_CHANGES.md) for the file-by-file preservation record.
+
+Tests: **31 core + 9 LIVE/mock + 7 English/share + 5 reporting/help + 5 Discord = 57 PASS, 0 FAIL**.
+New Discord checks mock installation, password input, module availability and Windows logs;
+they verify SMTP/custom setting preservation, saved webhook reuse, validation, disabling,
+and report/email-preview generation when Discord is unavailable. No real message was sent.
+Real installation and webhook delivery from the new setup flow were not performed.
+
+## Simplification and group report (branch simplify-project)
+
+- Shortened README to direct installation, DEMO, LIVE and Gmail commands; simplified the default dashboard to basic tables.
+- Adapted the supplied group report into report.ps1: event categories, grouping, PSWriteHTML cards/charts/table, and JSON statistics. Added collection of its account-management event IDs.
+- Added comment-based help to production functions and entry/tool scripts; checked actual Get-Help synopsis and parameter output.
+- Repaired IntervalSeconds forwarding and made Discord optional at load time. DEMO never sends Discord webhooks.
+- Local Windows PowerShell 5.1 suites: **31 core + 9 LIVE/mock + 7 English/share + 5 reporting/help = 52 PASS, 0 FAIL**.
+- Generated the real PSWriteHTML 1.41.0 report from synthetic events: 17 events, 15 warning events, valid HTML and JSON, encoded account text. Both function and command-line generation passed; monitor state was unchanged.
+- Built a real DiscordEmbed using PSDsHook 1.0.0 without sending it. The 48-file source share allowlist passed the private-data check.
+- No real failed logons, SMTP messages or webhooks were generated for these changes. Real log access, inbox delivery and operation on another computer were not revalidated. Historical checks below describe earlier versions.
+
 ## English update: 21 October 2026
 
 All application-owned prompts, reports, CSV headers, email messages, diagnostics, test names, comments, and documentation were converted to English. Legacy labels remain only as migration inputs and identity compatibility data. Raw event/account values are preserved. New tests verify stable alert IDs, unchanged receipts, restart and late-event deduplication, English reports, offline refresh, and share-file exclusions.
 
 Executed on Windows PowerShell 5.1:
 
-| Command | Result |
+| Validation area | Result |
 |---|---|
-| `tests/Run-Tests.ps1 -Stage 6` | 30 PASS, 0 FAIL |
-| `tests/Run-LiveTests.ps1` | 9 PASS, 0 FAIL |
-| `tests/Run-EnglishTests.ps1` | 7 PASS, 0 FAIL |
+| Core detection and integration | 30 PASS, 0 FAIL |
+| LIVE recovery and notifications | 9 PASS, 0 FAIL |
+| English output and sharing | 7 PASS, 0 FAIL |
 
 Total: **46 passing tests**. The LIVE recovery/SMTP tests use mocked sources and transports; the loop test runs two real processes against synthetic DEMO data. No test in these suites sends email or generates failed Windows logons. PowerShell syntax parsing is included. Artifacts stay in ignored test-results directories. Sharing tests also reject populated SMTP settings and exercise the actual archive exporter under PowerShell 5.1. The allowlisted 44-file package passed the content check; it contains no local configuration or runtime history.
 
@@ -30,7 +74,7 @@ These are separate checks: synthetic success is not evidence of real Windows log
 
 A real local-account test exposed a Windows PowerShell 5.1 time-filter problem: passing UTC DateTime values directly to Get-WinEvent FilterHashtable returned no recent failures, while equivalent local DateTime values returned six real 4625 events. Get-Logs.ps1 now converts UTC query boundaries to local time before querying Windows. Stored event timestamps and processing cursors remain UTC.
 
-Executed `tests/Run-Tests.ps1 -Stage 3`: **18 PASS, 0 FAIL**, including a regression check for all three event queries receiving local-time boundaries representing the original UTC instants. Elevated verification of the real log returned six test failures for both UTC and local input ranges after the fix.
+Detection and log-query checks: **18 PASS, 0 FAIL**, including a regression check for all three event queries receiving local-time boundaries representing the original UTC instants. Elevated verification of the real log returned six test failures for both UTC and local input ranges after the fix.
 
 The existing LIVE cursors were rewound to just before the test without deleting events, alerts, or delivery receipts. Reprocessing returned **27 events, 2 new alerts, Health=OK, NotificationMode=Send, PendingNotifications=0, ExitCode=0**. The two alerts matched the account and loopback IPv6 dimensions. SMTP accepted both actual LIVE notifications; inbox receipt has not been independently verified. No additional failed logons were generated by the agent. The earlier request to stop investigating the unrelated GitHub Actions failure remains respected.
 
@@ -65,9 +109,9 @@ This walkthrough used the available Windows host with Windows PowerShell 5.1 and
 | SMTP email with safe configuration | Real LIVE SMTP acceptance verified | Two LIVE notifications accepted after the real 4625 test; inbox receipt not independently verified |
 | Run every minute | Loop verified with DEMO; task not installed | Scheduler instructions and WhatIf only; verify after logout |
 | DEMO and integration | Works in tests | 17 events, two incidents, independent output, restart persistence |
-| English docs and presentation | Prepared | README, architecture, LIVE setup, presentation/Q&A, sharing guide |
-| Git-ready distribution | Prepared; local review required before upload | Ignore rules, explicit package allowlist, content checker, Windows CI definition |
+| English docs | Prepared | README, architecture, LIVE setup, sharing guide |
+| Git-ready distribution | Prepared; local review required before upload | Ignore rules, explicit package allowlist, content checker |
 
 ## Limits
 
-No earlier code or concept presentation PDF was supplied in the starting folder. Original presentation compliance cannot be independently confirmed. Windows 10 and 11 have not both been tested separately. Inbox receipt and scheduled operation after logout remain target-machine acceptance checks. History has no automatic retention, and SMTP cannot guarantee exactly-once delivery across a crash between server acceptance and receipt persistence.
+Windows 10 and 11 have not both been tested separately. Inbox receipt and scheduled operation after logout remain target-machine acceptance checks. History has no automatic retention, and SMTP cannot guarantee exactly-once delivery across a crash between server acceptance and receipt persistence.

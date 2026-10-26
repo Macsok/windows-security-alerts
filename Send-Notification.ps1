@@ -1,6 +1,25 @@
-﻿. "$PSScriptRoot/Common.ps1"
+﻿<#
+.SYNOPSIS
+Loads MailKit SMTP and local email preview functions.
+.DESCRIPTION
+Loads MailKit SMTP and local email preview functions.
+.EXAMPLE
+. .\Send-Notification.ps1; Get-SmtpReadiness -Smtp $config.Smtp
+#>
+. "$PSScriptRoot/Common.ps1"
 
 function Import-MailKit {
+    <#
+    .SYNOPSIS
+    Loads locally built MimeKit and MailKit libraries.
+    .DESCRIPTION
+    Loads locally built MimeKit and MailKit libraries.
+    .PARAMETER LibraryDirectory
+    Folder containing the built MailKit and MimeKit DLLs.
+    .EXAMPLE
+    Import-MailKit -LibraryDirectory .\vendor\mailkit
+    #>
+
     param([string]$LibraryDirectory = "$PSScriptRoot/vendor/mailkit")
     foreach ($name in @('MimeKit.dll','MailKit.dll')) {
         $path = Join-Path $LibraryDirectory $name
@@ -10,6 +29,17 @@ function Import-MailKit {
 }
 
 function Get-SmtpCredential {
+    <#
+    .SYNOPSIS
+    Reads SMTP credentials from local DPAPI storage or process variables.
+    .DESCRIPTION
+    Reads SMTP credentials from local DPAPI storage or process variables.
+    .PARAMETER Smtp
+    SMTP settings from the local configuration; never contains a hardcoded password.
+    .EXAMPLE
+    Get-SmtpCredential -Smtp $config.Smtp
+    #>
+
     param($Smtp)
     if ($Smtp.CredentialPath) {
         $credential = Import-Clixml -LiteralPath $Smtp.CredentialPath
@@ -23,6 +53,19 @@ function Get-SmtpCredential {
 }
 
 function Connect-MonitorSmtp {
+    <#
+    .SYNOPSIS
+    Connects to SMTP with required TLS and optional authentication.
+    .DESCRIPTION
+    Connects to SMTP with required TLS and optional authentication.
+    .PARAMETER Smtp
+    SMTP settings from the local configuration; never contains a hardcoded password.
+    .PARAMETER SkipAuthentication
+    Connects with TLS without authenticating.
+    .EXAMPLE
+    $client = Connect-MonitorSmtp -Smtp $config.Smtp; $client.Dispose()
+    #>
+
     param($Smtp, [switch]$SkipAuthentication)
     if (!$Smtp.Host -or $Smtp.Port -lt 1 -or $Smtp.Port -gt 65535) { throw 'Set a valid SMTP host and port.' }
     if ($Smtp.Security -notin @('StartTls','SslOnConnect')) { throw 'TLS is required: use StartTls or SslOnConnect.' }
@@ -40,6 +83,17 @@ function Connect-MonitorSmtp {
 }
 
 function Get-SmtpFailureDescription {
+    <#
+    .SYNOPSIS
+    Classifies SMTP failures without exposing credentials or server responses.
+    .DESCRIPTION
+    Classifies SMTP failures without exposing credentials or server responses.
+    .PARAMETER Exception
+    SMTP exception to classify without exposing its raw message.
+    .EXAMPLE
+    Get-SmtpFailureDescription -Exception ([Exception]::new('Connection failed'))
+    #>
+
     param([Parameter(Mandatory)][System.Exception]$Exception)
     # Inspect the exception chain without logging server responses that may contain account data.
     $authenticationFailure = $false
@@ -62,6 +116,17 @@ function Get-SmtpFailureDescription {
 }
 
 function Get-SmtpReadiness {
+    <#
+    .SYNOPSIS
+    Checks local SMTP configuration without sending a message.
+    .DESCRIPTION
+    Checks local SMTP configuration without sending a message.
+    .PARAMETER Smtp
+    SMTP settings from the local configuration; never contains a hardcoded password.
+    .EXAMPLE
+    Get-SmtpReadiness -Smtp $config.Smtp
+    #>
+
     param($Smtp)
     try {
         if (!$Smtp.Host -or !$Smtp.From -or @($Smtp.To).Count -eq 0) { throw 'CONFIG' }
@@ -78,6 +143,19 @@ function Get-SmtpReadiness {
 }
 
 function Test-SmtpConnection {
+    <#
+    .SYNOPSIS
+    Tests SMTP TLS and authentication without sending mail.
+    .DESCRIPTION
+    Tests SMTP TLS and authentication without sending mail.
+    .PARAMETER Smtp
+    SMTP settings from the local configuration; never contains a hardcoded password.
+    .PARAMETER TransportOnly
+    Tests TLS connectivity without SMTP authentication.
+    .EXAMPLE
+    Test-SmtpConnection -Smtp $config.Smtp
+    #>
+
     [CmdletBinding()]
     param([Parameter(Mandatory)]$Smtp, [switch]$TransportOnly)
     # Explicit connection test: TLS and authentication only; sends no messages.
@@ -87,6 +165,17 @@ function Test-SmtpConnection {
 }
 
 function Get-AlertMailBody {
+    <#
+    .SYNOPSIS
+    Formats one security incident as a plain-text email body.
+    .DESCRIPTION
+    Formats one security incident as a plain-text email body.
+    .PARAMETER Alert
+    One structured detected incident.
+    .EXAMPLE
+    Get-AlertMailBody -Alert $state.Alerts[0]
+    #>
+
     param($Alert)
     @"
 SECURITY ALERT - Suspicious Windows activity
@@ -103,6 +192,23 @@ Identifier: $($Alert.AlertId)
 }
 
 function Send-AlertNotification {
+    <#
+    .SYNOPSIS
+    Writes an email preview or sends one incident through MailKit.
+    .DESCRIPTION
+    Writes an email preview or sends one incident through MailKit.
+    .PARAMETER Alert
+    One structured detected incident.
+    .PARAMETER Smtp
+    SMTP settings from the local configuration; never contains a hardcoded password.
+    .PARAMETER Root
+    Output folder for the selected mode, or source folder for sharing tools.
+    .PARAMETER Mode
+    Selects DEMO or LIVE, or Test previews versus Send delivery for email functions.
+    .EXAMPLE
+    Send-AlertNotification -Alert $state.Alerts[0] -Root .\runtime\demo -Mode Test
+    #>
+
     [CmdletBinding()]
     param($Alert, $Smtp, [Parameter(Mandatory)][string]$Root, [ValidateSet('Test','Send')][string]$Mode='Test')
     $subject = 'SECURITY ALERT - Suspicious Windows activity'
@@ -133,6 +239,25 @@ function Send-AlertNotification {
 }
 
 function Invoke-PendingNotifications {
+    <#
+    .SYNOPSIS
+    Retries pending email alerts and saves successful delivery receipts.
+    .DESCRIPTION
+    Retries pending email alerts and saves successful delivery receipts.
+    .PARAMETER State
+    Monitoring state containing saved events, alerts and delivery receipts.
+    .PARAMETER Smtp
+    SMTP settings from the local configuration; never contains a hardcoded password.
+    .PARAMETER Root
+    Output folder for the selected mode, or source folder for sharing tools.
+    .PARAMETER StatePath
+    Persistent JSON state file used to save delivery receipts.
+    .PARAMETER Mode
+    Selects DEMO or LIVE, or Test previews versus Send delivery for email functions.
+    .EXAMPLE
+    Invoke-PendingNotifications -State $state -Smtp $config.Smtp -Root .\runtime\demo -StatePath .\runtime\demo\state.json -Mode Test
+    #>
+
     param($State, $Smtp, [string]$Root, [string]$StatePath, [ValidateSet('Test','Send')][string]$Mode='Test')
     $completed = @{}; foreach ($delivery in $State.Deliveries) { $completed["$($delivery.Mode)|$($delivery.AlertId)"]=$true }
     foreach ($alert in $State.Alerts) {

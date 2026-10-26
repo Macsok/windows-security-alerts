@@ -1,6 +1,6 @@
 # Sharing through Git or a source archive
 
-The source package contains English scripts, documentation, tests, a blank SMTP configuration template, the dependency lock file, a Windows CI workflow, and synthetic examples. It excludes runtime state, real logs, local SMTP settings, credentials, build output, downloaded libraries, and test artifacts.
+The source package contains English scripts, documentation, a blank SMTP configuration template, the dependency lock file, and synthetic examples. It excludes runtime state, real logs, local SMTP settings, credentials, build output, downloaded libraries, and test artifacts.
 
 ## Build a clean package
 
@@ -30,7 +30,7 @@ git status --short --untracked-files=all
 git add --dry-run .
 ```
 
-Only source, docs, tests, synthetic examples, and project metadata should appear. When reviewing the existing working folder, verify private and generated paths are ignored:
+Only source, docs, synthetic examples, and project metadata should appear. When reviewing the existing working folder, verify private and generated paths are ignored:
 
 ```powershell
 git check-ignore config.local.json config.test.local.json config.test.local.jso runtime/live/state.json vendor/mailkit/MailKit.dll
@@ -60,9 +60,7 @@ Authenticate through your Git credential manager. Never embed an access token in
 ## What recipients do
 
 1. Extract or clone the project and read README.md.
-2. Run the synthetic test suites and DEMO using config.example.json.
+2. Run DEMO using config.example.json.
 3. Copy the template to config.local.json for their own deployment.
 4. Install MailKit and configure their own SMTP credentials only if sending is needed.
 5. Verify Security permissions, auditing, and the scheduled task on their machine.
-
-The included GitHub Actions workflow runs synthetic tests on a Windows runner with read-only repository permissions and no SMTP credentials. It has not been executed on GitHub during local preparation. It uses [actions/checkout](https://github.com/actions/checkout) with credential persistence disabled. Test output stays outside the share package.

@@ -1,4 +1,26 @@
-﻿[CmdletBinding()]
+﻿<#
+.SYNOPSIS
+Runs monitoring repeatedly until Ctrl+C; email requires SendEmail.
+.DESCRIPTION
+Runs monitoring repeatedly until Ctrl+C; email requires SendEmail.
+.PARAMETER Mode
+Selects DEMO or LIVE, or Test previews versus Send delivery for email functions.
+.PARAMETER ConfigPath
+Path to local JSON configuration; defaults to config.local.json.
+.PARAMETER IntervalSeconds
+Polling interval in seconds; zero uses the configured interval where supported.
+.PARAMETER SendEmail
+Enables real SMTP delivery of all pending alerts; omitted means local previews.
+.PARAMETER Once
+Runs a single cycle and exits.
+.PARAMETER OpenDashboard
+Opens the generated dashboard in the default browser.
+.PARAMETER MaxCycles
+Stops after this many cycles; zero keeps running until Ctrl+C.
+.EXAMPLE
+.\Start-Monitor.ps1 -Mode DEMO -Once
+#>
+[CmdletBinding()]
 param(
     [ValidateSet('LIVE','DEMO')][string]$Mode='LIVE',
     [string]$ConfigPath='',

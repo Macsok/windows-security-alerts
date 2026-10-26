@@ -3,9 +3,17 @@
   "WindowSeconds": 120,
   "InitialLookbackMinutes": 10,
   "OverlapSeconds": 180,
+  "PollIntervalSeconds": 5,
+  "DashboardRefreshSeconds": 1,
   "OutputRoot": "runtime",
+  "Rules": {
+    "SuccessAfterFailures": true,
+    "PasswordSpray": true,
+    "PasswordSprayAccounts": 10,
+    "AdminGroupChange": true
+  },
   "Discord": {
-    "Enabled": true,
+    "Enabled": false,
     "WebhookUrl": "", 
     "ThumbnailUrl": "https://tse2.mm.bing.net/th/id/OIP.ipsXQjIWt6c_szUJ6HSKggHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3"
   },
